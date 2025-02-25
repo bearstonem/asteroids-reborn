@@ -120,8 +120,16 @@ class GameplayState(BaseState):
         """Handle input events"""
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
-                # Would open pause menu in full implementation
-                pass
+                # Return to main menu/title screen when ESC is pressed
+                # Fade out any game music that might be playing
+                if pygame.mixer.music.get_busy():
+                    pygame.mixer.music.fadeout(1000)
+                # Change to menu state using runtime import to avoid circular dependency
+                from game.states.menu_state import MenuState
+                # Save the current gameplay state in the game_state for potential resume
+                self.game_state.paused_gameplay_state = self
+                # Create a new menu state with resume_available=True
+                self.game_state.change_state(MenuState(self.game_state, resume_available=True))
             elif event.key == pygame.K_r and self.game_over:
                 self.initialize_game()  # Restart the game
         

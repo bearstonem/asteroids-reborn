@@ -1,5 +1,6 @@
 import pygame
 import random
+import os
 from game.states.base_state import BaseState
 from game.states.gameplay_state import GameplayState
 
@@ -7,18 +8,30 @@ class MenuState(BaseState):
     """
     Main menu state
     """
-    def __init__(self, game_state):
+    def __init__(self, game_state, resume_available=False):
         super().__init__(game_state)
         self.title_font = pygame.font.Font(None, 72)
         self.menu_font = pygame.font.Font(None, 36)
         self.info_font = pygame.font.Font(None, 24)
         self.selected_option = 0
-        self.menu_options = [
-            "New Game",
-            "Options",
-            "Credits",
-            "Quit"
-        ]
+        
+        # Set up menu options based on whether resume is available
+        self.resume_available = resume_available
+        if resume_available:
+            self.menu_options = [
+                "Resume Game",
+                "New Game",
+                "Options",
+                "Credits",
+                "Quit"
+            ]
+        else:
+            self.menu_options = [
+                "New Game",
+                "Options",
+                "Credits",
+                "Quit"
+            ]
         
         # Define powerup information for displaying on the start screen
         self.powerup_info = [
@@ -69,6 +82,33 @@ class MenuState(BaseState):
             
         # State flags
         self.showing_credits = False
+        
+        # Initialize music
+        self.init_music()
+    
+    def init_music(self):
+        """Initialize and play random background music for the title screen"""
+        # Initialize pygame mixer if not already initialized
+        if not pygame.mixer.get_init():
+            pygame.mixer.init()
+        
+        # Set up the music directory path
+        music_dir = os.path.join("game", "assets", "sounds", "music")
+        
+        # Get a list of all music files in the directory
+        music_files = [f for f in os.listdir(music_dir) if f.endswith('.mp3')]
+        
+        if music_files:
+            # Select a random music file
+            random_music = os.path.join(music_dir, random.choice(music_files))
+            
+            # Stop any currently playing music
+            pygame.mixer.music.stop()
+            
+            # Load and play the selected music, looping indefinitely
+            pygame.mixer.music.load(random_music)
+            pygame.mixer.music.set_volume(0.5)  # Set volume to 50%
+            pygame.mixer.music.play(-1)  # -1 means loop indefinitely
     
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -85,17 +125,43 @@ class MenuState(BaseState):
                     self.select_option()
     
     def select_option(self):
-        if self.selected_option == 0:  # New Game
-            self.game_state.change_state(GameplayState(self.game_state))
-        elif self.selected_option == 1:  # Options
-            # Would transition to an options menu in a complete implementation
-            pass
-        elif self.selected_option == 2:  # Credits
-            self.showing_credits = True
-        elif self.selected_option == 3:  # Quit
-            pygame.quit()
-            import sys
-            sys.exit()
+        if self.resume_available:
+            if self.selected_option == 0:  # Resume Game
+                # Fade out music when resuming the game
+                pygame.mixer.music.fadeout(1000)  # Fade out over 1 second
+                # Restore the paused gameplay state
+                if hasattr(self.game_state, 'paused_gameplay_state'):
+                    self.game_state.change_state(self.game_state.paused_gameplay_state)
+                else:
+                    # Fallback if no paused state exists
+                    self.game_state.change_state(GameplayState(self.game_state))
+            elif self.selected_option == 1:  # New Game
+                # Fade out music when starting the game
+                pygame.mixer.music.fadeout(1000)  # Fade out over 1 second
+                self.game_state.change_state(GameplayState(self.game_state))
+            elif self.selected_option == 2:  # Options
+                # Would transition to an options menu in a complete implementation
+                pass
+            elif self.selected_option == 3:  # Credits
+                self.showing_credits = True
+            elif self.selected_option == 4:  # Quit
+                pygame.quit()
+                import sys
+                sys.exit()
+        else:
+            if self.selected_option == 0:  # New Game
+                # Fade out music when starting the game
+                pygame.mixer.music.fadeout(1000)  # Fade out over 1 second
+                self.game_state.change_state(GameplayState(self.game_state))
+            elif self.selected_option == 1:  # Options
+                # Would transition to an options menu in a complete implementation
+                pass
+            elif self.selected_option == 2:  # Credits
+                self.showing_credits = True
+            elif self.selected_option == 3:  # Quit
+                pygame.quit()
+                import sys
+                sys.exit()
     
     def update(self, dt):
         # Update star positions for background animation
