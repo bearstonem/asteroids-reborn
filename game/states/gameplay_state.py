@@ -46,6 +46,9 @@ class GameplayState(BaseState):
         self.level_cleared = False
         self.level_start_timer = 2.0  # Give player some time before asteroids appear
         
+        # Powerup spawn timer
+        self.powerup_spawn_timer = random.uniform(5.0, 10.0)  # First random powerup in 5-10 seconds
+        
         # UI elements
         self.game_over_font = pygame.font.Font(None, 72)
         
@@ -125,7 +128,7 @@ class GameplayState(BaseState):
         # Apply time slow effect if active
         effective_dt = dt
         if self.player and self.player.time_slow:
-            effective_dt = dt * 0.5  # Half speed for asteroids and enemies when time slow is active
+            effective_dt = dt * 0.167  # Slowed to 1/6 speed (3x more powerful than before) when time slow is active
         else:
             effective_dt = dt
         
@@ -144,6 +147,17 @@ class GameplayState(BaseState):
                 # Level has officially started, play level sound
                 self.game_state.sound_manager.play("level_up")
         
+        # Update random powerup spawning timer
+        if self.level_start_timer <= 0:  # Only spawn after level start
+            self.powerup_spawn_timer -= dt
+            if self.powerup_spawn_timer <= 0:
+                # Reset timer with random interval based on level (more frequent in higher levels)
+                base_time = max(15.0 - (self.level * 0.5), 5.0)  # Starts at ~15s in level 1, decreases to minimum of 5s
+                self.powerup_spawn_timer = random.uniform(base_time * 0.7, base_time * 1.3)  # Some randomness
+                
+                # Spawn a random powerup at a random location away from the player
+                self.spawn_random_powerup()
+        
         # Update player
         self.player.update(dt, self.game_state.sound_manager)
         
@@ -157,6 +171,21 @@ class GameplayState(BaseState):
             self.player.rapid_fire_timer -= dt
             if self.player.rapid_fire_timer <= 0:
                 self.player.rapid_fire = False
+                
+        if self.player.time_slow and self.player.time_slow_timer > 0:
+            self.player.time_slow_timer -= dt
+            if self.player.time_slow_timer <= 0:
+                self.player.time_slow = False
+                
+        if self.player.triple_shot and self.player.triple_shot_timer > 0:
+            self.player.triple_shot_timer -= dt
+            if self.player.triple_shot_timer <= 0:
+                self.player.triple_shot = False
+                
+        if self.player.magnet and self.player.magnet_timer > 0:
+            self.player.magnet_timer -= dt
+            if self.player.magnet_timer <= 0:
+                self.player.magnet = False
         
         # Wrap player position around screen edges
         if self.player.x < 0:
@@ -410,6 +439,16 @@ class GameplayState(BaseState):
         for powerup in self.powerups[:]:
             powerup.update(dt)
             
+            # Wrap powerup around screen edges
+            if powerup.x < -20:
+                powerup.x = self.screen_width + 20
+            elif powerup.x > self.screen_width + 20:
+                powerup.x = -20
+            if powerup.y < -20:
+                powerup.y = self.screen_height + 20
+            elif powerup.y > self.screen_height + 20:
+                powerup.y = -20
+            
             # Check collision with player
             if check_collision(self.player, powerup):
                 self.handle_powerup_collected(powerup)
@@ -535,7 +574,7 @@ class GameplayState(BaseState):
                         )
         
         # Chance to spawn a powerup
-        if random.random() < 0.1:  # 10% chance
+        if random.random() < 0.2:  # 20% chance (increased from 10%)
             # Select a random powerup type with weights
             powerup_types = [
                 "shield", 
@@ -727,4 +766,51 @@ class GameplayState(BaseState):
             
             restart_text = self.ui_font.render("Press R to Restart", True, (255, 255, 255))
             restart_rect = restart_text.get_rect(center=(surface.get_width() // 2, surface.get_height() // 2 + 60))
-            surface.blit(restart_text, restart_rect) 
+            surface.blit(restart_text, restart_rect)
+    
+    def spawn_random_powerup(self):
+        """Spawn a random powerup at a random location away from the player"""
+        # Find a suitable random position (not too close to the player)
+        while True:
+            x = random.randint(50, self.screen_width - 50)
+            y = random.randint(50, self.screen_height - 50)
+            
+            # Calculate distance to player
+            dx = x - self.player.x
+            dy = y - self.player.y
+            distance = math.sqrt(dx * dx + dy * dy)
+            
+            # Make sure it's not too close to the player
+            if distance > 150:  # Minimum safe distance
+                break
+        
+        # Select a random powerup type with weights
+        powerup_types = [
+            "shield", 
+            "rapidfire", 
+            "extralife", 
+            "timeslow", 
+            "tripleshot", 
+            "magnet"
+        ]
+        
+        # Different weights for different powerups (rarer ones have lower chance)
+        weights = [0.2, 0.2, 0.1, 0.2, 0.15, 0.15]
+        
+        powerup_type = random.choices(powerup_types, weights=weights)[0]
+        
+        # Random velocity for interesting movement
+        # Higher speed for more challenging collection
+        speed = random.uniform(30, 80)
+        angle = random.uniform(0, 2 * math.pi)  # Random direction
+        vel_x = math.cos(angle) * speed
+        vel_y = math.sin(angle) * speed
+        
+        # Create and add the powerup
+        self.powerups.append(
+            Powerup(x, y, vel_x, vel_y, powerup_type)
+        )
+        
+        # Optional: Play a subtle sound to indicate a powerup has spawned
+        if hasattr(self.game_state, 'sound_manager'):
+            self.game_state.sound_manager.play("powerup_spawn") 
