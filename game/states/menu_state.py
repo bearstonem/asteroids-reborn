@@ -38,6 +38,20 @@ class MenuState(BaseState):
             {"key": "R", "action": "Restart game (when game over)"}
         ]
         
+        # Define credits information
+        self.credits = [
+            {"title": "GAME DEVELOPMENT", "items": [
+                "Claude Sonnet 3.7 - Code Assistance",
+                "Bear Stonem - Developer"
+            ]},
+            {"title": "SOUND EFFECTS", "items": [
+                "Elevenlabs - Sound Effects"
+            ]},
+            {"title": "SPECIAL THANKS", "items": [
+                "Pygame Community"
+            ]}
+        ]
+        
         # Add some visual flair with stars in the background
         self.stars = []
         screen_width = pygame.display.get_surface().get_width()
@@ -52,15 +66,23 @@ class MenuState(BaseState):
                 'size': random.uniform(1, 4),
                 'speed': random.uniform(0.1, 0.6)
             })
+            
+        # State flags
+        self.showing_credits = False
     
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
-                self.selected_option = (self.selected_option - 1) % len(self.menu_options)
-            elif event.key == pygame.K_DOWN:
-                self.selected_option = (self.selected_option + 1) % len(self.menu_options)
-            elif event.key == pygame.K_RETURN:
-                self.select_option()
+            if self.showing_credits:
+                # Any key returns from credits to main menu
+                if event.key == pygame.K_ESCAPE or event.key == pygame.K_RETURN:
+                    self.showing_credits = False
+            else:
+                if event.key == pygame.K_UP:
+                    self.selected_option = (self.selected_option - 1) % len(self.menu_options)
+                elif event.key == pygame.K_DOWN:
+                    self.selected_option = (self.selected_option + 1) % len(self.menu_options)
+                elif event.key == pygame.K_RETURN:
+                    self.select_option()
     
     def select_option(self):
         if self.selected_option == 0:  # New Game
@@ -69,8 +91,7 @@ class MenuState(BaseState):
             # Would transition to an options menu in a complete implementation
             pass
         elif self.selected_option == 2:  # Credits
-            # Would show credits in a complete implementation
-            pass
+            self.showing_credits = True
         elif self.selected_option == 3:  # Quit
             pygame.quit()
             import sys
@@ -99,33 +120,36 @@ class MenuState(BaseState):
                 int(star['size'])
             )
         
-        # Draw title
-        title_text = self.title_font.render("ASTEROIDS REBORN", True, (255, 255, 255))
-        title_rect = title_text.get_rect(center=(surface.get_width() // 2, surface.get_height() // 6))
-        surface.blit(title_text, title_rect)
-        
-        # Draw menu options
-        menu_y = surface.get_height() // 3
-        for i, option in enumerate(self.menu_options):
-            color = (255, 255, 0) if i == self.selected_option else (200, 200, 200)
-            text = self.menu_font.render(option, True, color)
-            rect = text.get_rect(center=(surface.get_width() // 2, menu_y + i * 50))
-            surface.blit(text, rect)
+        if self.showing_credits:
+            self.render_credits(surface)
+        else:
+            # Draw title
+            title_text = self.title_font.render("ASTEROIDS REBORN", True, (255, 255, 255))
+            title_rect = title_text.get_rect(center=(surface.get_width() // 2, surface.get_height() // 6))
+            surface.blit(title_text, title_rect)
             
-            # Draw selection indicator
-            if i == self.selected_option:
-                indicator_points = [
-                    (rect.left - 20, rect.centery),
-                    (rect.left - 10, rect.centery - 5),
-                    (rect.left - 10, rect.centery + 5)
-                ]
-                pygame.draw.polygon(surface, (255, 255, 0), indicator_points)
-        
-        # Draw powerup information
-        self.render_powerup_info(surface)
-        
-        # Draw control bindings
-        self.render_control_bindings(surface)
+            # Draw menu options
+            menu_y = surface.get_height() // 3
+            for i, option in enumerate(self.menu_options):
+                color = (255, 255, 0) if i == self.selected_option else (200, 200, 200)
+                text = self.menu_font.render(option, True, color)
+                rect = text.get_rect(center=(surface.get_width() // 2, menu_y + i * 50))
+                surface.blit(text, rect)
+                
+                # Draw selection indicator
+                if i == self.selected_option:
+                    indicator_points = [
+                        (rect.left - 20, rect.centery),
+                        (rect.left - 10, rect.centery - 5),
+                        (rect.left - 10, rect.centery + 5)
+                    ]
+                    pygame.draw.polygon(surface, (255, 255, 0), indicator_points)
+            
+            # Draw powerup information
+            self.render_powerup_info(surface)
+            
+            # Draw control bindings
+            self.render_control_bindings(surface)
     
     def render_powerup_info(self, surface):
         """Render powerup information on the start screen"""
@@ -169,4 +193,32 @@ class MenuState(BaseState):
             # Draw action description
             action_text = self.info_font.render(binding["action"], True, (200, 200, 200))
             action_rect = action_text.get_rect(midleft=(key_rect.right + 20, y_pos))
-            surface.blit(action_text, action_rect) 
+            surface.blit(action_text, action_rect)
+    
+    def render_credits(self, surface):
+        """Render the credits screen"""
+        # Draw title
+        title_text = self.title_font.render("CREDITS", True, (255, 255, 255))
+        title_rect = title_text.get_rect(center=(surface.get_width() // 2, surface.get_height() // 8))
+        surface.blit(title_text, title_rect)
+        
+        # Draw credits information
+        y_offset = title_rect.bottom + 50
+        for section in self.credits:
+            # Draw section title
+            section_title = self.menu_font.render(section["title"], True, (255, 255, 0))
+            section_rect = section_title.get_rect(midtop=(surface.get_width() // 2, y_offset))
+            surface.blit(section_title, section_rect)
+            
+            # Draw section items
+            for i, item in enumerate(section["items"]):
+                item_text = self.info_font.render(item, True, (200, 200, 200))
+                item_rect = item_text.get_rect(midtop=(surface.get_width() // 2, section_rect.bottom + 10 + (i * 30)))
+                surface.blit(item_text, item_rect)
+            
+            y_offset = section_rect.bottom + 10 + (len(section["items"]) * 30) + 40
+        
+        # Draw instructions to return
+        return_text = self.info_font.render("Press ESC or ENTER to return to menu", True, (150, 150, 150))
+        return_rect = return_text.get_rect(midbottom=(surface.get_width() // 2, surface.get_height() - 30))
+        surface.blit(return_text, return_rect) 
