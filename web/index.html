@@ -15,7 +15,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
         }
         
         #game-container {
@@ -45,6 +45,17 @@
             font-size: 1.5rem;
             margin-top: 2rem;
         }
+        
+        .audio-note {
+            background-color: rgba(50, 50, 50, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
     </style>
 </head>
 <body>
@@ -53,6 +64,14 @@
         <p>Loading game... This may take a few moments.</p>
         <div id="gameContainer"></div>
         <div id="loading">Loading...</div>
+        
+        <div class="audio-note">
+            <strong>📢 Audio Note:</strong> You will need to click inside the game to enable audio. 
+            Browsers require user interaction before playing sound. After the game loads, click 
+            the "Click to Start Game" button to activate audio.
+            <br><br>
+            <a href="audio_troubleshooting.html" style="color: #4fc3f7;" target="_blank">Having audio issues? Click here for the troubleshooting guide.</a>
+        </div>
     </div>
 
     <script>

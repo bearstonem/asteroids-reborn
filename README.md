@@ -102,7 +102,9 @@ git push
 ### Troubleshooting Web Build
 
 - Some browsers may have issues with WebAssembly. Chrome and Firefox are recommended.
-- Audio may not work on some mobile browsers due to autoplay restrictions.
+- **Audio requires user interaction**: Due to browser policies, you must click the "Click to Start Game" button when the game loads to enable audio.
+- If you see "Error occurred: The play method is not allowed by the user agent or the platform in the current context," this means the user hasn't interacted with the game yet. This is normal and will be resolved after clicking.
+- If you want audio but don't hear any, check that your browser's volume is not muted.
 - If you see any CORS errors, make sure your server is configured correctly.
 
 ## Development Roadmap

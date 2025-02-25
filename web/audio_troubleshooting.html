@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Troubleshooting - Asteroids Reborn</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        
+        h1, h2 {
+            color: #222;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        code {
+            background-color: #f5f5f5;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        
+        .note {
+            background-color: #e7f3fe;
+            border-left: 4px solid #2196F3;
+            padding: 10px;
+        }
+        
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+        }
+        
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Audio Troubleshooting for Asteroids Reborn Web Version</h1>
+    
+    <div class="card">
+        <h2>Common Audio Issues</h2>
+        <p>When running Pygame games in a web browser, you may encounter issues with audio playback due to browser security restrictions. Here's how to resolve them.</p>
+    </div>
+    
+    <div class="card">
+        <h2>Error: "The play method is not allowed by the user agent"</h2>
+        <p>This error occurs due to browser policies that prevent websites from playing audio until the user has interacted with the page.</p>
+        
+        <div class="note">
+            <p><strong>Solution:</strong> When the game starts, you should see a "Click to Start Game (with Audio)" button. Click this button to enable audio.</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>No Audio After Clicking Start</h2>
+        <ol>
+            <li>Make sure your system volume is on and not muted</li>
+            <li>Check if your browser allows audio for this site:
+                <ul>
+                    <li>In Chrome: Click the lock icon in the URL bar and ensure "Sound" is set to "Allow"</li>
+                    <li>In Firefox: Click the lock icon and check that "Autoplay sound" is allowed</li>
+                </ul>
+            </li>
+            <li>Try refreshing the page and clicking the start button again</li>
+        </ol>
+    </div>
+    
+    <div class="card">
+        <h2>Browser Compatibility</h2>
+        <p>For the best experience, we recommend using:</p>
+        <ul>
+            <li>Chrome (latest version)</li>
+            <li>Firefox (latest version)</li>
+            <li>Edge (latest version)</li>
+        </ul>
+        
+        <div class="warning">
+            <p>Some mobile browsers may have limitations with WebAssembly and audio playback. For the best experience, use a desktop browser.</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Still Having Issues?</h2>
+        <p>If you're still experiencing audio problems:</p>
+        <ol>
+            <li>Try playing the game in a different browser</li>
+            <li>Ensure you don't have extensions blocking JavaScript or audio playback</li>
+            <li>Check your browser's console (F12) for any specific error messages</li>
+            <li><a href="https://github.com/yourusername/asteroidsreborn/issues">Report the issue</a> with details about your browser and operating system</li>
+        </ol>
+    </div>
+    
+    <p><a href="index.html">← Back to Game</a></p>
+</body>
+</html> 
