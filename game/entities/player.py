@@ -25,17 +25,16 @@ class Player:
         self.invulnerable_timer = 0
         self.rapid_fire = False
         self.rapid_fire_timer = 0
+        self.shoot_cooldown = 0
         
-        # New power-up states
-        self.multishot = False
-        self.multishot_timer = 0
+        # New powerups
         self.time_slow = False
         self.time_slow_timer = 0
+        self.triple_shot = False
+        self.triple_shot_timer = 0
         self.magnet = False
         self.magnet_timer = 0
-        self.explosion_ammo = 0
-        
-        self.shoot_cooldown = 0
+        self.magnet_radius = 150  # Range for collecting items
         
         # Player characteristics
         self.rotation_speed = 180  # degrees per second
@@ -66,10 +65,6 @@ class Player:
     
     def update(self, dt, sound_manager=None):
         """Update player state"""
-        # Apply time slow effect
-        if self.time_slow:
-            dt *= 0.5  # Slow down time by half
-        
         # Handle rotation
         if self.is_turning_left:
             self.rotation -= self.rotation_speed * dt
@@ -127,17 +122,16 @@ class Player:
             if self.rapid_fire_timer <= 0:
                 self.rapid_fire = False
         
-        # Update new power-up timers
-        if self.multishot:
-            self.multishot_timer -= dt
-            if self.multishot_timer <= 0:
-                self.multishot = False
-        
+        # Update new powerup timers
         if self.time_slow:
-            # Use real dt here, not the modified one
-            self.time_slow_timer -= dt * 2  # Time passes at normal rate for the timer
+            self.time_slow_timer -= dt
             if self.time_slow_timer <= 0:
                 self.time_slow = False
+        
+        if self.triple_shot:
+            self.triple_shot_timer -= dt
+            if self.triple_shot_timer <= 0:
+                self.triple_shot = False
         
         if self.magnet:
             self.magnet_timer -= dt
@@ -198,54 +192,59 @@ class Player:
                 2  # Shield thickness
             )
         
-        # Draw time slow effect
-        if self.time_slow:
-            # Purple time slow aura
-            time_slow_color = (180, 100, 255, 60)  # Purple, very transparent
-            # Create pulsing effect
-            pulse = (pygame.time.get_ticks() % 1000) / 1000.0
-            pulse_size = 5 + pulse * 5
+        # Draw magnet field if active
+        if self.magnet:
+            magnet_color = (255, 255, 100, 30)  # Yellow, very transparent
+            magnet_surface = pygame.Surface((self.magnet_radius * 2, self.magnet_radius * 2), pygame.SRCALPHA)
             pygame.draw.circle(
-                surface, 
-                time_slow_color, 
-                (int(self.x), int(self.y)), 
-                int(self.radius + pulse_size),
-                1  # Thin line
+                magnet_surface,
+                magnet_color,
+                (int(self.magnet_radius), int(self.magnet_radius)),
+                int(self.magnet_radius)
+            )
+            # Add pulsing effect
+            pulse = (pygame.time.get_ticks() % 1000) / 1000.0
+            pulse_radius = int(self.magnet_radius * (0.8 + 0.2 * pulse))
+            pygame.draw.circle(
+                magnet_surface,
+                (255, 255, 100, 20),
+                (int(self.magnet_radius), int(self.magnet_radius)),
+                pulse_radius,
+                3
+            )
+            surface.blit(
+                magnet_surface,
+                (int(self.x - self.magnet_radius), int(self.y - self.magnet_radius))
             )
         
-        # Draw magnet effect
-        if self.magnet:
-            # Yellow magnet aura
-            magnet_color = (255, 255, 100, 80)  # Yellow, transparent
-            # Create rippling effect
-            ripple = (pygame.time.get_ticks() % 500) / 500.0
-            for i in range(3):
-                ripple_offset = (ripple + i/3) % 1.0
-                ripple_radius = self.radius + 10 + ripple_offset * 20
-                pygame.draw.circle(
-                    surface, 
-                    magnet_color, 
-                    (int(self.x), int(self.y)), 
-                    int(ripple_radius),
-                    1  # Thin line
-                )
-        
-        # Draw multishot indicator
-        if self.multishot:
-            # Draw small indicators around the ship showing multishot is active
-            ms_color = (255, 100, 150)  # Pink
-            # Draw three small dots at the front of the ship
-            dot_distance = self.radius + 5
-            for i in range(3):
-                angle_offset = -0.3 + i * 0.3
-                dot_x = self.x + math.cos(angle_rad + angle_offset) * dot_distance
-                dot_y = self.y + math.sin(angle_rad + angle_offset) * dot_distance
-                pygame.draw.circle(
-                    surface,
-                    ms_color,
-                    (int(dot_x), int(dot_y)),
-                    2
-                )
+        # Draw time slow effect if active
+        if self.time_slow:
+            # Add a subtle time slow indicator (clock hands)
+            time_color = (200, 100, 255, 150)
+            # Draw clock hands that move slowly
+            angle = (pygame.time.get_ticks() / 2000.0) % (2 * math.pi)
+            # Hour hand
+            hour_length = self.radius * 0.6
+            hour_x = self.x + math.cos(angle) * hour_length
+            hour_y = self.y + math.sin(angle) * hour_length
+            pygame.draw.line(
+                surface,
+                time_color,
+                (int(self.x), int(self.y)),
+                (int(hour_x), int(hour_y)),
+                2
+            )
+            # Minute hand
+            minute_length = self.radius * 0.8
+            minute_x = self.x + math.cos(angle * 12) * minute_length
+            minute_y = self.y + math.sin(angle * 12) * minute_length
+            pygame.draw.line(
+                surface,
+                time_color,
+                (int(self.x), int(self.y)),
+                (int(minute_x), int(minute_y)),
+                1
+            )
         
         # Draw the ship body
         pygame.draw.polygon(surface, ship_color, points)
@@ -278,16 +277,4 @@ class Player:
             
             # Draw the flame with a yellow-orange color
             flame_color = (255, 150, 50)
-            pygame.draw.polygon(surface, flame_color, flame_points)
-        
-        # Draw explosion ammo indicator if player has explosion shots
-        if self.explosion_ammo > 0:
-            # Draw small explosion indicators at the bottom of the screen
-            exp_color = (255, 50, 50)  # Red
-            text_surface = pygame.font.Font(None, 24).render(
-                f"Bombs: {self.explosion_ammo}", True, exp_color
-            )
-            surface.blit(
-                text_surface, 
-                (self.x - text_surface.get_width() // 2, self.y + self.radius + 10)
-            ) 
+            pygame.draw.polygon(surface, flame_color, flame_points) 

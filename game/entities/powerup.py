@@ -25,6 +25,12 @@ class Powerup:
             self.color = (255, 200, 100)  # Orange
         elif powerup_type == "extralife":
             self.color = (100, 255, 100)  # Green
+        elif powerup_type == "timeslow":
+            self.color = (200, 100, 255)  # Purple
+        elif powerup_type == "tripleshot":
+            self.color = (255, 100, 100)  # Red
+        elif powerup_type == "magnet":
+            self.color = (255, 255, 100)  # Yellow
         else:
             self.color = (200, 200, 200)  # Gray (default)
     
@@ -189,6 +195,145 @@ class Powerup:
                 (bottom_x, bottom_y)
             ]
             pygame.draw.polygon(surface, (255, 255, 255), heart_points)
+        
+        elif self.powerup_type == "timeslow":
+            # Time slow powerup (purple orb with hourglass symbol)
+            # Draw outer orb
+            pygame.draw.circle(
+                surface,
+                self.color,
+                (int(self.x), int(self.y)),
+                int(self.radius)
+            )
+            
+            # Draw hourglass symbol with rotation
+            symbol_size = self.radius * 0.7
+            rotation_rad = math.radians(self.rotation)
+            cos_rot = math.cos(rotation_rad)
+            sin_rot = math.sin(rotation_rad)
+            
+            # Define hourglass points relative to center
+            rel_points = [
+                (-symbol_size * 0.5, -symbol_size * 0.6),  # Top-left
+                (symbol_size * 0.5, -symbol_size * 0.6),   # Top-right
+                (0, 0),                                    # Middle
+                (symbol_size * 0.5, symbol_size * 0.6),    # Bottom-right
+                (-symbol_size * 0.5, symbol_size * 0.6),   # Bottom-left
+                (0, 0)                                     # Middle (connect back)
+            ]
+            
+            # Rotate and translate points
+            hourglass_points = []
+            for rel_x, rel_y in rel_points:
+                # Rotate point
+                rot_x = rel_x * cos_rot - rel_y * sin_rot
+                rot_y = rel_x * sin_rot + rel_y * cos_rot
+                # Translate to powerup position
+                hourglass_points.append((self.x + rot_x, self.y + rot_y))
+            
+            pygame.draw.lines(surface, (255, 255, 255), False, hourglass_points, 2)
+        
+        elif self.powerup_type == "tripleshot":
+            # Triple shot powerup (red orb with three bullet symbols)
+            # Draw outer orb
+            pygame.draw.circle(
+                surface,
+                self.color,
+                (int(self.x), int(self.y)),
+                int(self.radius)
+            )
+            
+            # Draw triple shot symbol with rotation
+            symbol_size = self.radius * 0.5
+            rotation_rad = math.radians(self.rotation)
+            cos_rot = math.cos(rotation_rad)
+            sin_rot = math.sin(rotation_rad)
+            
+            # Draw three small circles representing bullets
+            for i in range(3):
+                angle = rotation_rad + i * (2 * math.pi / 3)
+                bullet_x = self.x + math.cos(angle) * symbol_size * 0.6
+                bullet_y = self.y + math.sin(angle) * symbol_size * 0.6
+                
+                pygame.draw.circle(
+                    surface,
+                    (255, 255, 255),
+                    (int(bullet_x), int(bullet_y)),
+                    int(symbol_size * 0.25)
+                )
+            
+            # Draw center connection
+            pygame.draw.circle(
+                surface,
+                (255, 255, 255),
+                (int(self.x), int(self.y)),
+                int(symbol_size * 0.15)
+            )
+        
+        elif self.powerup_type == "magnet":
+            # Magnet powerup (yellow orb with magnet symbol)
+            # Draw outer orb
+            pygame.draw.circle(
+                surface,
+                self.color,
+                (int(self.x), int(self.y)),
+                int(self.radius)
+            )
+            
+            # Draw magnet symbol with rotation
+            symbol_size = self.radius * 0.7
+            rotation_rad = math.radians(self.rotation)
+            cos_rot = math.cos(rotation_rad)
+            sin_rot = math.sin(rotation_rad)
+            
+            # Draw horseshoe magnet symbol
+            magnet_width = symbol_size * 0.7
+            magnet_height = symbol_size
+            
+            # U shape points
+            rel_points = [
+                (-magnet_width/2, -magnet_height/2),  # Left top
+                (-magnet_width/2, magnet_height/2),   # Left bottom
+                (0, magnet_height/2),                # Bottom middle
+                (magnet_width/2, magnet_height/2),   # Right bottom
+                (magnet_width/2, -magnet_height/2)   # Right top
+            ]
+            
+            # Rotate and translate points
+            magnet_points = []
+            for rel_x, rel_y in rel_points:
+                # Rotate point
+                rot_x = rel_x * cos_rot - rel_y * sin_rot
+                rot_y = rel_x * sin_rot + rel_y * cos_rot
+                # Translate to powerup position
+                magnet_points.append((self.x + rot_x, self.y + rot_y))
+            
+            pygame.draw.lines(surface, (255, 255, 255), False, magnet_points, 2)
+            
+            # Draw N/S poles
+            pole_size = symbol_size * 0.25
+            
+            # North pole
+            n_pole_x = self.x - (magnet_width/2) * cos_rot
+            n_pole_y = self.y - (magnet_width/2) * sin_rot
+            pygame.draw.line(
+                surface,
+                (255, 0, 0),  # Red for North
+                (int(n_pole_x), int(n_pole_y)),
+                (int(n_pole_x - pole_size * sin_rot), int(n_pole_y + pole_size * cos_rot)),
+                3
+            )
+            
+            # South pole
+            s_pole_x = self.x + (magnet_width/2) * cos_rot
+            s_pole_y = self.y + (magnet_width/2) * sin_rot
+            pygame.draw.line(
+                surface,
+                (0, 0, 255),  # Blue for South
+                (int(s_pole_x), int(s_pole_y)),
+                (int(s_pole_x - pole_size * sin_rot), int(s_pole_y + pole_size * cos_rot)),
+                3
+            )
         
         # Add glow effect based on pulse
         glow_radius = self.radius * (1 + pulse_amount * 0.3)

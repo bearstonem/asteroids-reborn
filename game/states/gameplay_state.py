@@ -122,6 +122,13 @@ class GameplayState(BaseState):
     
     def update(self, dt):
         """Update game state"""
+        # Apply time slow effect if active
+        effective_dt = dt
+        if self.player and self.player.time_slow:
+            effective_dt = dt * 0.5  # Half speed for asteroids and enemies when time slow is active
+        else:
+            effective_dt = dt
+        
         if self.game_over:
             # Only update particles when game over
             for particle in self.particles[:]:
@@ -163,33 +170,58 @@ class GameplayState(BaseState):
         
         # Handle player shooting
         if self.player.is_shooting and self.player.shoot_cooldown <= 0:
-            # Calculate projectile position based on player position and rotation
-            angle_rad = math.radians(self.player.rotation)  # Use the player's rotation directly
-            start_distance = self.player.radius + 5  # Offset from player center
-            
-            start_x = self.player.x + math.cos(angle_rad) * start_distance
-            start_y = self.player.y + math.sin(angle_rad) * start_distance
-            
-            # Create the projectile
-            projectile = Projectile(
-                start_x, start_y,
-                math.cos(angle_rad) * 350,  # X velocity
-                math.sin(angle_rad) * 350   # Y velocity
-            )
-            self.projectiles.append(projectile)
-            
-            # Play shoot sound
-            self.game_state.sound_manager.play("player_shoot")
-            
-            # Reset cooldown
+            # Reset cooldown based on rapid fire status
             if self.player.rapid_fire:
                 self.player.shoot_cooldown = 0.1  # Faster fire rate with powerup
             else:
-                self.player.shoot_cooldown = 0.3  # Normal fire rate
+                self.player.shoot_cooldown = 0.2  # Normal fire rate
+            
+            # Spawn projectile
+            angle_rad = math.radians(self.player.rotation)
+            
+            # Create projectile velocity based on ship direction
+            proj_speed = 400  # Projectile speed
+            vel_x = math.cos(angle_rad) * proj_speed
+            vel_y = math.sin(angle_rad) * proj_speed
+            
+            # Add some of the ship velocity to the projectile
+            vel_x += self.player.vel_x * 0.5
+            vel_y += self.player.vel_y * 0.5
+            
+            # Calculate projectile spawn position (in front of the ship)
+            spawn_distance = self.player.radius + 5
+            spawn_x = self.player.x + math.cos(angle_rad) * spawn_distance
+            spawn_y = self.player.y + math.sin(angle_rad) * spawn_distance
+            
+            # Create and add the projectile
+            self.projectiles.append(
+                Projectile(spawn_x, spawn_y, vel_x, vel_y)
+            )
+            
+            # Create additional projectiles if triple shot is active
+            if self.player.triple_shot:
+                # Left projectile (20 degrees offset)
+                left_angle = angle_rad - math.radians(20)
+                left_vel_x = math.cos(left_angle) * proj_speed + self.player.vel_x * 0.5
+                left_vel_y = math.sin(left_angle) * proj_speed + self.player.vel_y * 0.5
+                self.projectiles.append(
+                    Projectile(spawn_x, spawn_y, left_vel_x, left_vel_y)
+                )
+                
+                # Right projectile (20 degrees offset)
+                right_angle = angle_rad + math.radians(20)
+                right_vel_x = math.cos(right_angle) * proj_speed + self.player.vel_x * 0.5
+                right_vel_y = math.sin(right_angle) * proj_speed + self.player.vel_y * 0.5
+                self.projectiles.append(
+                    Projectile(spawn_x, spawn_y, right_vel_x, right_vel_y)
+                )
+            
+            # Play shooting sound
+            self.game_state.sound_manager.play("player_shoot")
         
         # Update enemy
         if self.enemy.active:
-            should_fire = self.enemy.update(dt, self.player.x, self.player.y, 
+            should_fire = self.enemy.update(effective_dt, self.player.x, self.player.y, 
                                             self.screen_width, self.screen_height,
                                             self.game_state.sound_manager,
                                             self.asteroids)
@@ -216,12 +248,12 @@ class GameplayState(BaseState):
                 self.player_destroyed()
         else:
             # Update respawn timer when inactive
-            self.enemy.update(dt, self.player.x, self.player.y, 
+            self.enemy.update(effective_dt, self.player.x, self.player.y, 
                               self.screen_width, self.screen_height)
         
-        # Update asteroids
+        # Update asteroids with potential time slow effect
         for asteroid in self.asteroids[:]:
-            asteroid.update(dt)
+            asteroid.update(effective_dt)
             
             # Wrap asteroid position around screen edges
             if asteroid.x < -50:
@@ -284,7 +316,7 @@ class GameplayState(BaseState):
         
         # Update projectiles
         for projectile in self.projectiles[:]:
-            projectile.update(dt)
+            projectile.update(effective_dt)
             
             # Wrap projectiles around screen edges instead of removing them
             if projectile.x < 0:
@@ -393,9 +425,25 @@ class GameplayState(BaseState):
             self.level_cleared = True
             self.level += 1
             self.start_new_level()
+            
+        # Apply magnet effect to powerups
+        if self.player and self.player.magnet:
+            for powerup in self.powerups[:]:
+                # Calculate distance to player
+                dx = self.player.x - powerup.x
+                dy = self.player.y - powerup.y
+                distance = math.sqrt(dx * dx + dy * dy)
+                
+                # If within magnet radius, pull toward player
+                if distance < self.player.magnet_radius:
+                    # Calculate attraction force (stronger when closer)
+                    force = (1.0 - distance / self.player.magnet_radius) * 5.0
+                    # Apply force to powerup velocity
+                    powerup.vel_x += (dx / distance) * force
+                    powerup.vel_y += (dy / distance) * force
     
     def handle_asteroid_hit(self, asteroid, projectile):
-        """Handle asteroid being hit by a projectile"""
+        """Handle an asteroid being hit by a projectile"""
         # Remove the asteroid
         self.asteroids.remove(asteroid)
         
@@ -488,12 +536,26 @@ class GameplayState(BaseState):
         
         # Chance to spawn a powerup
         if random.random() < 0.1:  # 10% chance
-            powerup_type = random.choice(["shield", "rapidfire", "extralife"])
+            # Select a random powerup type with weights
+            powerup_types = [
+                "shield", 
+                "rapidfire", 
+                "extralife", 
+                "timeslow", 
+                "tripleshot", 
+                "magnet"
+            ]
+            
+            # Different weights for different powerups (rarer ones have lower chance)
+            weights = [0.2, 0.2, 0.1, 0.2, 0.15, 0.15]
+            
+            powerup_type = random.choices(powerup_types, weights=weights)[0]
+            
+            # Create a powerup at the asteroid's position with some velocity
             self.powerups.append(
                 Powerup(
                     asteroid.x, asteroid.y,
-                    random.uniform(-25, 25),
-                    random.uniform(-25, 25),
+                    random.uniform(-50, 50), random.uniform(-50, 50),
                     powerup_type
                 )
             )
@@ -511,6 +573,15 @@ class GameplayState(BaseState):
             self.player.rapid_fire_timer = 5.0  # 5 seconds of rapid fire
         elif powerup.powerup_type == "extralife":
             self.player.lives += 1
+        elif powerup.powerup_type == "timeslow":
+            self.player.time_slow = True
+            self.player.time_slow_timer = 5.0  # 5 seconds of time slow
+        elif powerup.powerup_type == "tripleshot":
+            self.player.triple_shot = True
+            self.player.triple_shot_timer = 5.0  # 5 seconds of triple shot
+        elif powerup.powerup_type == "magnet":
+            self.player.magnet = True
+            self.player.magnet_timer = 7.0  # 7 seconds of magnet effect
     
     def player_destroyed(self):
         """Handle player being destroyed"""
@@ -626,6 +697,21 @@ class GameplayState(BaseState):
         if self.player.rapid_fire and self.player.rapid_fire_timer > 0:
             rapid_text = self.small_font.render(f"Rapid Fire: {self.player.rapid_fire_timer:.1f}s", True, (255, 200, 100))
             surface.blit(rapid_text, (20, y_offset))
+            y_offset += 25
+            
+        if self.player.triple_shot and self.player.triple_shot_timer > 0:
+            triple_text = self.small_font.render(f"Triple Shot: {self.player.triple_shot_timer:.1f}s", True, (255, 100, 100))
+            surface.blit(triple_text, (20, y_offset))
+            y_offset += 25
+            
+        if self.player.time_slow and self.player.time_slow_timer > 0:
+            time_text = self.small_font.render(f"Time Slow: {self.player.time_slow_timer:.1f}s", True, (200, 100, 255))
+            surface.blit(time_text, (20, y_offset))
+            y_offset += 25
+            
+        if self.player.magnet and self.player.magnet_timer > 0:
+            magnet_text = self.small_font.render(f"Magnet: {self.player.magnet_timer:.1f}s", True, (255, 255, 100))
+            surface.blit(magnet_text, (20, y_offset))
         
         # Display level start message if needed
         if self.level_start_timer > 0:
