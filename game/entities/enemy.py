@@ -492,39 +492,41 @@ class Enemy:
         return False  # Enemy damaged but not destroyed
     
     def respawn(self, screen_width, screen_height, player_x, player_y):
-        """Respawn the enemy ship away from the player"""
-        # Find a position away from the player
-        while True:
-            x = random.randint(0, screen_width)
-            y = random.randint(0, screen_height)
-            
-            # Make sure it's not too close to the player
-            dx = x - player_x
-            dy = y - player_y
-            distance = math.sqrt(dx * dx + dy * dy)
-            
-            if distance > 350:  # Increased safe distance (from 300)
-                break
-        
-        # Reset enemy state
-        self.x = x
-        self.y = y
-        self.vel_x = 0
-        self.vel_y = 0
-        self.rotation = random.uniform(0, 360)
-        self.health = 4  # Increased health (from 3)
+        """Respawn enemy at a position away from the player"""
+        self.health = 4
         self.active = True
         self.behavior_state = "seek"
-        self.last_player_pos = None
         self.avoiding_asteroid = False
         self.avoidance_timer = 0
+        self.last_player_pos = None
+        self.last_detection_time = 0
         self.burst_fire_count = 0
         self.burst_fire_cooldown = 0
         self.burst_fire_delay = 0
-        self.flanking_direction = random.choice([-1, 1])
-        self.prediction_factor = random.uniform(0.6, 1.0)
+        self.aim_predict_time = random.uniform(0.3, 0.7)  # Randomize prediction for variety
+        self.shot_accuracy = random.uniform(0.85, 0.97)  # Randomize accuracy
+        self.flanking_direction = random.choice([-1, 1])  # Randomize flanking direction
+        self.burst_mode = random.random() < 0.4  # 40% chance to use burst fire mode
+        
+        # Respawn at a position away from the player
+        angle = random.uniform(0, 2 * math.pi)
+        distance = random.uniform(screen_width * 0.4, screen_width * 0.8)
+        
+        # Place enemy at a distance from the player, wrapping around screen edges
+        self.x = player_x + math.cos(angle) * distance
+        self.y = player_y + math.sin(angle) * distance
+        
+        # Ensure enemy is within screen bounds
+        self.x = self.x % screen_width
+        self.y = self.y % screen_height
+        
+        # Reset velocity and rotation
+        self.vel_x = 0
+        self.vel_y = 0
+        self.rotation = random.uniform(0, 360)
+        
+        # Reset strategy timer
         self.strategy_change_timer = random.uniform(8.0, 15.0)
-        self.shot_accuracy = random.uniform(0.85, 0.97)  # Reset accuracy for the new ship
     
     def render(self, surface):
         """Render the enemy ship"""

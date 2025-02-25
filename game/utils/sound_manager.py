@@ -180,4 +180,15 @@ class SoundManager:
             # Stop music
             pygame.mixer.music.stop()
                     
-        return self.enabled 
+        return self.enabled
+    
+    def play_sound(self, sound_name, loop=False):
+        """Alias for play method for compatibility"""
+        if loop:
+            return self.loop(sound_name)
+        else:
+            return self.play(sound_name)
+    
+    def stop_sound(self, sound_name):
+        """Alias for stop method for compatibility"""
+        return self.stop(sound_name) 

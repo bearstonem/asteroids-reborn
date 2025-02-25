@@ -27,11 +27,11 @@ class GameplayState(BaseState):
     
     def initialize_game(self):
         """Initialize or reset the game to starting state"""
-        # Get screen dimensions
-        self.screen_width = pygame.display.get_surface().get_width()
-        self.screen_height = pygame.display.get_surface().get_height()
+        # Get screen dimensions from game_state for adaptable play area
+        self.screen_width = self.game_state.screen_width
+        self.screen_height = self.game_state.screen_height
         
-        # Initialize game entities
+        # Initialize game entities - center player on the screen
         self.player = Player(self.screen_width // 2, self.screen_height // 2)
         self.asteroids = []
         self.projectiles = []
@@ -46,7 +46,7 @@ class GameplayState(BaseState):
         self.level_cleared = False
         self.level_start_timer = 2.0  # Give player some time before asteroids appear
         
-        # Reinitialize star field with new random stars
+        # Reinitialize star field with new random stars based on current screen size
         self.initialize_stars(300)
         
         # Powerup spawn timer
@@ -73,7 +73,9 @@ class GameplayState(BaseState):
                 'brightness': random.randint(150, 255),  # Varying brightness
                 'flicker_speed': random.uniform(0.5, 2.0),  # How fast it flickers
                 'flicker_offset': random.uniform(0, 6.28),  # Random phase offset
-                'flicker_amount': random.uniform(0.0, 0.5)  # How much it flickers (0-0.5)
+                'flicker_amount': random.uniform(0.0, 0.5),  # How much it flickers (0-0.5)
+                'speed': random.uniform(10, 40),  # How fast the star moves down
+                'flicker_time': 0.0  # Initialize flicker time
             }
             self.stars.append(star)
     
@@ -117,49 +119,86 @@ class GameplayState(BaseState):
             )
     
     def handle_event(self, event):
-        """Handle input events"""
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                # Return to main menu/title screen when ESC is pressed
-                # Fade out any game music that might be playing
-                if pygame.mixer.music.get_busy():
-                    pygame.mixer.music.fadeout(1000)
-                # Change to menu state using runtime import to avoid circular dependency
-                from game.states.menu_state import MenuState
-                # Save the current gameplay state in the game_state for potential resume
-                self.game_state.paused_gameplay_state = self
-                # Create a new menu state with resume_available=True
-                self.game_state.change_state(MenuState(self.game_state, resume_available=True))
-            elif event.key == pygame.K_r and self.game_over:
-                self.initialize_game()  # Restart the game
-        
+        """Handle input events for gameplay"""
         # Pass events to player if game is active
         if not self.game_over:
             self.player.handle_event(event)
+            
+            # Handle fullscreen toggle with 'F' key
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_f:
+                # Toggle fullscreen
+                new_state = not self.game_state.is_fullscreen
+                self.game_state.toggle_fullscreen(new_state)
+                
+                # Update local screen dimensions
+                self.screen_width = self.game_state.screen_width
+                self.screen_height = self.game_state.screen_height
+                
+                # Reinitialize stars to fit new screen size
+                self.initialize_stars(300)
+                
+                # Center player on the new screen to prevent being off-screen
+                if not self.game_over:
+                    self.player.x = self.screen_width // 2
+                    self.player.y = self.screen_height // 2
+        
+        # Pause game with Escape key
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            from game.states.menu_state import MenuState
+            # Store current gameplay state for possible resume
+            self.game_state.paused_gameplay_state = self
+            # Change to menu state with resume option
+            self.game_state.change_state(MenuState(self.game_state, resume_available=True))
+            
+        # Restart game with R key if game over
+        if self.game_over and event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+            self.initialize_game()
     
     def update(self, dt):
         """Update game state"""
+        # Get current screen dimensions (in case they've changed)
+        self.screen_width = self.game_state.screen_width
+        self.screen_height = self.game_state.screen_height
+        
         # Apply time slow effect if active
         effective_dt = dt
-        if self.player and self.player.time_slow:
-            effective_dt = dt * 0.167  # Slowed to 1/6 speed (3x more powerful than before) when time slow is active
-        else:
-            effective_dt = dt
+        if self.player.time_slow:
+            # Slower game speed for everything except the player
+            effective_dt *= 0.3
         
-        if self.game_over:
-            # Only update particles when game over
-            for particle in self.particles[:]:
-                particle.update(dt)
-                if particle.life <= 0:
-                    self.particles.remove(particle)
-            return
-        
-        # Update level start timer
+        # Level start timer
         if self.level_start_timer > 0:
             self.level_start_timer -= dt
             if self.level_start_timer <= 0:
-                # Level has officially started, play level sound
-                self.game_state.sound_manager.play("level_up")
+                self.start_new_level()
+        
+        # Update stars
+        for star in self.stars:
+            star['y'] += star['speed'] * dt
+            if star['y'] > self.screen_height:
+                star['y'] = 0
+                star['x'] = random.uniform(0, self.screen_width)
+            
+            # Update flicker animation
+            star['flicker_time'] += dt
+            star['current_brightness'] = 1.0 + math.sin(star['flicker_time'] + star['flicker_offset']) * star['flicker_amount']
+        
+        # Stop here if game is over
+        if self.game_over:
+            return
+            
+        # Update player unless the level is cleared
+        if not self.level_cleared:
+            self.player.update(dt, self.game_state.sound_manager)
+        
+        # Update enemy
+        enemy_hit = self.enemy.update(
+            effective_dt, 
+            self.player.x, self.player.y, 
+            self.screen_width, self.screen_height,
+            self.game_state.sound_manager, 
+            self.asteroids
+        )
         
         # Update random powerup spawning timer
         if self.level_start_timer <= 0:  # Only spawn after level start
@@ -171,9 +210,6 @@ class GameplayState(BaseState):
                 
                 # Spawn a random powerup at a random location away from the player
                 self.spawn_random_powerup()
-        
-        # Update player
-        self.player.update(dt, self.game_state.sound_manager)
         
         # Update power-up timers
         if self.player.invulnerable and self.player.invulnerable_timer > 0:
@@ -261,38 +297,6 @@ class GameplayState(BaseState):
             
             # Play shooting sound
             self.game_state.sound_manager.play("player_shoot")
-        
-        # Update enemy
-        if self.enemy.active:
-            should_fire = self.enemy.update(effective_dt, self.player.x, self.player.y, 
-                                            self.screen_width, self.screen_height,
-                                            self.game_state.sound_manager,
-                                            self.asteroids)
-            
-            # Handle enemy shooting
-            if should_fire:
-                # Calculate projectile position based on enemy position and rotation
-                angle_rad = math.radians(self.enemy.rotation)
-                start_distance = self.enemy.radius + 5
-                
-                start_x = self.enemy.x + math.cos(angle_rad) * start_distance
-                start_y = self.enemy.y + math.sin(angle_rad) * start_distance
-                
-                # Create the projectile - slightly slower than player projectiles
-                projectile = Projectile(
-                    start_x, start_y,
-                    math.cos(angle_rad) * 300,  # X velocity
-                    math.sin(angle_rad) * 300   # Y velocity
-                )
-                self.projectiles.append(projectile)
-            
-            # Check collision between player and enemy
-            if not self.player.invulnerable and check_collision(self.player, self.enemy):
-                self.player_destroyed()
-        else:
-            # Update respawn timer when inactive
-            self.enemy.update(effective_dt, self.player.x, self.player.y, 
-                              self.screen_width, self.screen_height)
         
         # Update asteroids with potential time slow effect
         for asteroid in self.asteroids[:]:

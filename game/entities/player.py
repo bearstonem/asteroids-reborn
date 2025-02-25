@@ -71,63 +71,73 @@ class Player:
     
     def update(self, dt, sound_manager=None):
         """Update player state"""
+        # Check what screen surface we're on to get the dimensions for wrapping
+        screen_width = pygame.display.get_surface().get_width()
+        screen_height = pygame.display.get_surface().get_height()
+        
         # Handle rotation
         if self.is_turning_left:
             self.rotation -= self.rotation_speed * dt
         if self.is_turning_right:
             self.rotation += self.rotation_speed * dt
         
-        # Normalize rotation to 0-360 degrees
-        self.rotation %= 360
+        # Normalize rotation to 0-360
+        self.rotation = self.rotation % 360
         
         # Handle thrust
         if self.is_thrusting:
-            # Calculate acceleration vector from ship rotation
+            # Convert rotation to radians
             angle_rad = math.radians(self.rotation)
-            accel_x = math.cos(angle_rad) * self.thrust_strength * dt
-            accel_y = math.sin(angle_rad) * self.thrust_strength * dt
             
-            # Apply acceleration to velocity
-            self.vel_x += accel_x
-            self.vel_y += accel_y
+            # Calculate thrust vector based on ship's rotation
+            thrust_x = math.sin(angle_rad) * self.thrust_strength * dt
+            thrust_y = -math.cos(angle_rad) * self.thrust_strength * dt
             
-            # Limit velocity to max speed
-            velocity = math.sqrt(self.vel_x * self.vel_x + self.vel_y * self.vel_y)
-            if velocity > self.max_velocity:
-                scale = self.max_velocity / velocity
-                self.vel_x *= scale
-                self.vel_y *= scale
+            # Apply thrust to velocity
+            self.vel_x += thrust_x
+            self.vel_y += thrust_y
             
             # Generate thruster particles
-            self.thruster_timer -= dt
-            if self.thruster_timer <= 0:
-                self.thruster_timer = 0.01  # Create new particles every 0.01 seconds
-                self.create_thruster_particles()
+            self.thrust_power = min(self.thrust_power + dt * 2, 1.0)  # Ramp up thrust visual
+            self.create_thruster_particles()
             
-            # Loop thrust sound while thrusting
-            if sound_manager:
+            # Play thrust sound if not already playing
+            if sound_manager and not self.was_thrusting:
                 sound_manager.loop("thrust")
+                self.was_thrusting = True
         else:
-            # Stop thrust sound when not thrusting
+            self.thrust_power = max(self.thrust_power - dt * 4, 0)  # Decrease thrust visual faster than buildup
+            
+            # Stop thrust sound if no longer thrusting
             if sound_manager and self.was_thrusting:
                 sound_manager.stop("thrust")
+                self.was_thrusting = False
         
-        # Track thrust state for sound
-        self.was_thrusting = self.is_thrusting
+        # Apply velocity limit
+        speed = math.sqrt(self.vel_x ** 2 + self.vel_y ** 2)
+        if speed > self.max_velocity:
+            scale_factor = self.max_velocity / speed
+            self.vel_x *= scale_factor
+            self.vel_y *= scale_factor
         
-        # Apply friction/damping
-        self.vel_x *= self.friction
-        self.vel_y *= self.friction
-        
-        # Update position based on velocity
+        # Apply velocity to position
         self.x += self.vel_x * dt
         self.y += self.vel_y * dt
         
-        # Update thruster particles
-        for particle in self.thruster_particles[:]:
-            particle.update(dt)
-            if particle.life <= 0:
-                self.thruster_particles.remove(particle)
+        # Apply friction
+        self.vel_x *= pow(self.friction, dt * 60)
+        self.vel_y *= pow(self.friction, dt * 60)
+        
+        # Handle screen wrapping
+        if self.x < -self.radius:
+            self.x = screen_width + self.radius
+        elif self.x > screen_width + self.radius:
+            self.x = -self.radius
+            
+        if self.y < -self.radius:
+            self.y = screen_height + self.radius
+        elif self.y > screen_height + self.radius:
+            self.y = -self.radius
         
         # Update timers
         if self.invulnerable:

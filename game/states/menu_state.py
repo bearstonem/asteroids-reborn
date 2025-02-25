@@ -21,6 +21,7 @@ class MenuState(BaseState):
             self.menu_options = [
                 "Resume Game",
                 "New Game",
+                "Fullscreen: " + ("ON" if self.game_state.is_fullscreen else "OFF"),
                 "Options",
                 "Credits",
                 "Quit"
@@ -28,6 +29,7 @@ class MenuState(BaseState):
         else:
             self.menu_options = [
                 "New Game",
+                "Fullscreen: " + ("ON" if self.game_state.is_fullscreen else "OFF"),
                 "Options",
                 "Credits",
                 "Quit"
@@ -48,7 +50,8 @@ class MenuState(BaseState):
             {"key": "WASD / Arrows", "action": "Move ship"},
             {"key": "SPACE", "action": "Fire weapon"},
             {"key": "ESC", "action": "Pause game"},
-            {"key": "R", "action": "Restart game (when game over)"}
+            {"key": "R", "action": "Restart game (when game over)"},
+            {"key": "F", "action": "Toggle fullscreen (in game)"}
         ]
         
         # Define credits information
@@ -82,6 +85,7 @@ class MenuState(BaseState):
             
         # State flags
         self.showing_credits = False
+        self.showing_options = False
         
         # Initialize music
         self.init_music()
@@ -139,12 +143,14 @@ class MenuState(BaseState):
                 # Fade out music when starting the game
                 pygame.mixer.music.fadeout(1000)  # Fade out over 1 second
                 self.game_state.change_state(GameplayState(self.game_state))
-            elif self.selected_option == 2:  # Options
+            elif self.selected_option == 2:  # Fullscreen toggle
+                self.toggle_fullscreen()
+            elif self.selected_option == 3:  # Options
                 # Would transition to an options menu in a complete implementation
                 pass
-            elif self.selected_option == 3:  # Credits
+            elif self.selected_option == 4:  # Credits
                 self.showing_credits = True
-            elif self.selected_option == 4:  # Quit
+            elif self.selected_option == 5:  # Quit
                 pygame.quit()
                 import sys
                 sys.exit()
@@ -153,12 +159,14 @@ class MenuState(BaseState):
                 # Fade out music when starting the game
                 pygame.mixer.music.fadeout(1000)  # Fade out over 1 second
                 self.game_state.change_state(GameplayState(self.game_state))
-            elif self.selected_option == 1:  # Options
+            elif self.selected_option == 1:  # Fullscreen toggle
+                self.toggle_fullscreen()
+            elif self.selected_option == 2:  # Options
                 # Would transition to an options menu in a complete implementation
                 pass
-            elif self.selected_option == 2:  # Credits
+            elif self.selected_option == 3:  # Credits
                 self.showing_credits = True
-            elif self.selected_option == 3:  # Quit
+            elif self.selected_option == 4:  # Quit
                 pygame.quit()
                 import sys
                 sys.exit()
@@ -287,4 +295,17 @@ class MenuState(BaseState):
         # Draw instructions to return
         return_text = self.info_font.render("Press ESC or ENTER to return to menu", True, (150, 150, 150))
         return_rect = return_text.get_rect(midbottom=(surface.get_width() // 2, surface.get_height() - 30))
-        surface.blit(return_text, return_rect) 
+        surface.blit(return_text, return_rect)
+    
+    def toggle_fullscreen(self):
+        # Toggle fullscreen state
+        new_state = not self.game_state.is_fullscreen
+        # Call the toggle function stored in game_state
+        self.game_state.toggle_fullscreen(new_state)
+        
+        # Update menu option text to reflect new state
+        fullscreen_text = "Fullscreen: " + ("ON" if new_state else "OFF")
+        if self.resume_available:
+            self.menu_options[2] = fullscreen_text
+        else:
+            self.menu_options[1] = fullscreen_text 

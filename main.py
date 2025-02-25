@@ -12,12 +12,38 @@ SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 FPS = 60
 
-# Create the main screen
+# Create the main screen - default to windowed mode initially
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pygame.time.Clock()
 
-# Initialize game state
+# Initialize game state with screen dimensions
 game_state = GameState()
+game_state.screen_width = SCREEN_WIDTH
+game_state.screen_height = SCREEN_HEIGHT
+game_state.is_fullscreen = False
+
+# Function to toggle fullscreen mode
+def toggle_fullscreen(enable_fullscreen):
+    global screen
+    if enable_fullscreen:
+        # Get the desktop size for fullscreen mode
+        info = pygame.display.Info()
+        fullscreen_width = info.current_w
+        fullscreen_height = info.current_h
+        screen = pygame.display.set_mode((fullscreen_width, fullscreen_height), pygame.FULLSCREEN)
+        game_state.screen_width = fullscreen_width
+        game_state.screen_height = fullscreen_height
+        game_state.is_fullscreen = True
+    else:
+        screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        game_state.screen_width = SCREEN_WIDTH
+        game_state.screen_height = SCREEN_HEIGHT
+        game_state.is_fullscreen = False
+
+# Store the toggle function in game_state for access from menu
+game_state.toggle_fullscreen = toggle_fullscreen
+
+# Initialize default state
 game_state.change_state(MenuState(game_state))
 
 # Main game loop

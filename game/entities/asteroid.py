@@ -54,7 +54,22 @@ class Asteroid:
         
         # Update rotation
         self.rotation += self.rotation_speed * dt
-        self.rotation %= 360
+        self.rotation = self.rotation % 360  # Keep rotation between 0-360
+        
+        # Get screen dimensions for wrapping
+        screen_width = pygame.display.get_surface().get_width()
+        screen_height = pygame.display.get_surface().get_height()
+        
+        # Screen wrapping
+        if self.x < -self.radius:
+            self.x = screen_width + self.radius
+        elif self.x > screen_width + self.radius:
+            self.x = -self.radius
+            
+        if self.y < -self.radius:
+            self.y = screen_height + self.radius
+        elif self.y > screen_height + self.radius:
+            self.y = -self.radius
     
     def render(self, surface):
         """Render the asteroid"""
