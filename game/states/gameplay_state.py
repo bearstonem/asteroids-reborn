@@ -476,7 +476,7 @@ class GameplayState(BaseState):
                 # If within magnet radius, pull toward player
                 if distance < self.player.magnet_radius:
                     # Calculate attraction force (stronger when closer)
-                    force = (1.0 - distance / self.player.magnet_radius) * 5.0
+                    force = (1.0 - distance / self.player.magnet_radius) * 12.0  # Increased from 5.0 to 12.0 for stronger attraction
                     # Apply force to powerup velocity
                     powerup.vel_x += (dx / distance) * force
                     powerup.vel_y += (dy / distance) * force
@@ -606,21 +606,21 @@ class GameplayState(BaseState):
         
         if powerup.powerup_type == "shield":
             self.player.invulnerable = True
-            self.player.invulnerable_timer = 5.0  # 5 seconds of shield
+            self.player.invulnerable_timer = 15.0  # 15 seconds of shield
         elif powerup.powerup_type == "rapidfire":
             self.player.rapid_fire = True
-            self.player.rapid_fire_timer = 5.0  # 5 seconds of rapid fire
+            self.player.rapid_fire_timer = 15.0  # 15 seconds of rapid fire
         elif powerup.powerup_type == "extralife":
             self.player.lives += 1
         elif powerup.powerup_type == "timeslow":
             self.player.time_slow = True
-            self.player.time_slow_timer = 5.0  # 5 seconds of time slow
+            self.player.time_slow_timer = 10.0  # 10 seconds of time slow
         elif powerup.powerup_type == "tripleshot":
             self.player.triple_shot = True
-            self.player.triple_shot_timer = 5.0  # 5 seconds of triple shot
+            self.player.triple_shot_timer = 15.0  # 15 seconds of triple shot
         elif powerup.powerup_type == "magnet":
             self.player.magnet = True
-            self.player.magnet_timer = 7.0  # 7 seconds of magnet effect
+            self.player.magnet_timer = 18.0  # 18 seconds of magnet effect
     
     def player_destroyed(self):
         """Handle player being destroyed"""

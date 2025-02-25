@@ -34,7 +34,7 @@ class Player:
         self.triple_shot_timer = 0
         self.magnet = False
         self.magnet_timer = 0
-        self.magnet_radius = 150  # Range for collecting items
+        self.magnet_radius = 250  # Increased from 150 to 250 for larger attraction range
         
         # Player characteristics
         self.rotation_speed = 180  # degrees per second
