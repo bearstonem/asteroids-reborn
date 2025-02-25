@@ -1,5 +1,7 @@
 import pygame
 import math
+import random
+from game.entities.particle import Particle
 
 class Player:
     """
@@ -35,6 +37,10 @@ class Player:
         self.magnet = False
         self.magnet_timer = 0
         self.magnet_radius = 250  # Increased from 150 to 250 for larger attraction range
+        
+        # Particle system for thruster effect
+        self.thruster_particles = []
+        self.thruster_timer = 0  # Timer for creating new particles
         
         # Player characteristics
         self.rotation_speed = 180  # degrees per second
@@ -92,6 +98,12 @@ class Player:
                 self.vel_x *= scale
                 self.vel_y *= scale
             
+            # Generate thruster particles
+            self.thruster_timer -= dt
+            if self.thruster_timer <= 0:
+                self.thruster_timer = 0.01  # Create new particles every 0.01 seconds
+                self.create_thruster_particles()
+            
             # Loop thrust sound while thrusting
             if sound_manager:
                 sound_manager.loop("thrust")
@@ -110,6 +122,12 @@ class Player:
         # Update position based on velocity
         self.x += self.vel_x * dt
         self.y += self.vel_y * dt
+        
+        # Update thruster particles
+        for particle in self.thruster_particles[:]:
+            particle.update(dt)
+            if particle.life <= 0:
+                self.thruster_particles.remove(particle)
         
         # Update timers
         if self.invulnerable:
@@ -145,12 +163,84 @@ class Player:
             else:
                 self.shoot_cooldown -= dt
     
+    def create_thruster_particles(self):
+        """Create thruster particles when ship is accelerating"""
+        # Calculate thruster position at the back of the ship
+        angle_rad = math.radians(self.rotation)
+        back_angle = angle_rad + math.pi  # Opposite direction of ship heading
+        
+        # Create particles at the back of the ship with an offset
+        back_offset = 15  # Distance from ship center to thruster
+        thruster_x = self.x + math.cos(back_angle) * back_offset
+        thruster_y = self.y + math.sin(back_angle) * back_offset
+        
+        # Create multiple particles for a more dynamic effect
+        num_particles = random.randint(2, 5)
+        for _ in range(num_particles):
+            # Randomize particle direction slightly
+            spread = 0.3  # Angle spread in radians
+            particle_angle = back_angle + random.uniform(-spread, spread)
+            
+            # Calculate initial particle velocity (opposite direction of ship movement)
+            particle_speed = random.uniform(20, 100)
+            vel_x = math.cos(particle_angle) * particle_speed
+            vel_y = math.sin(particle_angle) * particle_speed
+            
+            # Create different colors for thruster based on ship velocity
+            velocity = math.sqrt(self.vel_x * self.vel_x + self.vel_y * self.vel_y)
+            intensity = min(1.0, velocity / self.max_velocity)
+            
+            # Color ranges from yellow (slow) to blue/white (fast)
+            if random.random() < 0.7:  # 70% are main flame color
+                r = int(255 * (1.0 - intensity * 0.5))
+                g = int(200 * (1.0 - intensity * 0.2))
+                b = int(100 + 155 * intensity)
+                color = (r, g, b)
+            else:  # 30% are brighter core
+                color = (255, 255, random.randint(180, 255))
+            
+            # Add slight randomization to particle position
+            offset_x = random.uniform(-3, 3)
+            offset_y = random.uniform(-3, 3)
+            
+            # Add particle effects
+            has_glow = random.random() < 0.4
+            has_trail = random.random() < 0.3
+            
+            # Determine particle shape and fade behavior
+            if random.random() < 0.8:
+                shape = "circle"  # Most thruster particles are circles
+                fade = "normal" if random.random() < 0.7 else "pulse"
+            else:
+                shape = random.choice(["triangle", "square"])
+                fade = "flicker"
+            
+            # Create the particle with enhanced visual effects
+            self.thruster_particles.append(
+                Particle(
+                    thruster_x + offset_x, thruster_y + offset_y,
+                    vel_x, vel_y,
+                    random.uniform(0.2, 0.6),  # Lifetime
+                    color,
+                    size=random.uniform(1.5, 4.0),
+                    shape=shape,
+                    trail=has_trail,
+                    glow=has_glow,
+                    fade_mode=fade,
+                    spin=random.random() < 0.3
+                )
+            )
+    
     def render(self, surface):
         """Render the player ship"""
         # Don't render if off screen
         if (self.x < -50 or self.x > surface.get_width() + 50 or
             self.y < -50 or self.y > surface.get_height() + 50):
             return
+        
+        # Draw thruster particles first (behind the ship)
+        for particle in self.thruster_particles:
+            particle.render(surface)
         
         # Skip some frames if invulnerable to create blinking effect
         if self.invulnerable and pygame.time.get_ticks() % 200 < 100:
@@ -180,6 +270,50 @@ class Player:
         
         # Draw the ship
         ship_color = (50, 150, 255)  # Blue ship
+        
+        # Draw active thruster flame if thrusting (visible from the outside)
+        if self.is_thrusting:
+            # Calculate thruster position
+            back_angle = angle_rad + math.pi
+            thruster_x = self.x + math.cos(back_angle) * 12
+            thruster_y = self.y + math.sin(back_angle) * 12
+            
+            # Draw flame (triangle shape)
+            flame_length = 10 + random.uniform(-2, 2)  # Flickering effect
+            flame_width = 6 + random.uniform(-1, 1)
+            
+            flame_points = [
+                (thruster_x, thruster_y),
+                (thruster_x + math.cos(back_angle + 0.3) * flame_width, 
+                 thruster_y + math.sin(back_angle + 0.3) * flame_width),
+                (thruster_x + math.cos(back_angle) * flame_length, 
+                 thruster_y + math.sin(back_angle) * flame_length),
+                (thruster_x + math.cos(back_angle - 0.3) * flame_width, 
+                 thruster_y + math.sin(back_angle - 0.3) * flame_width),
+            ]
+            
+            # Flame color changes over time for flickering effect
+            flicker = (pygame.time.get_ticks() % 100) / 100.0
+            flame_color = (255, 200 + int(55 * flicker), 0)
+            
+            pygame.draw.polygon(surface, flame_color, flame_points)
+            
+            # Inner flame (brighter)
+            inner_flame_length = flame_length * 0.7
+            inner_flame_width = flame_width * 0.5
+            
+            inner_flame_points = [
+                (thruster_x, thruster_y),
+                (thruster_x + math.cos(back_angle + 0.2) * inner_flame_width, 
+                 thruster_y + math.sin(back_angle + 0.2) * inner_flame_width),
+                (thruster_x + math.cos(back_angle) * inner_flame_length, 
+                 thruster_y + math.sin(back_angle) * inner_flame_length),
+                (thruster_x + math.cos(back_angle - 0.2) * inner_flame_width, 
+                 thruster_y + math.sin(back_angle - 0.2) * inner_flame_width),
+            ]
+            
+            inner_flame_color = (255, 255, 200)
+            pygame.draw.polygon(surface, inner_flame_color, inner_flame_points)
         
         # Draw shield if invulnerable
         if self.invulnerable:
@@ -249,32 +383,13 @@ class Player:
         # Draw the ship body
         pygame.draw.polygon(surface, ship_color, points)
         
-        # Draw engine thrust if the ship is thrusting
-        if self.is_thrusting:
-            # Engine position (behind the ship)
-            engine_angle = angle_rad + math.pi  # Opposite direction of ship heading
-            
-            # Create flame effect with random length
-            flame_length = 10 + (pygame.time.get_ticks() % 6)  # Fluctuating flame
-            
-            flame_points = [
-                # Center of back
-                (self.x + math.cos(angle_rad + math.pi) * 5, 
-                 self.y + math.sin(angle_rad + math.pi) * 5),
-                
-                # Right edge of flame
-                (self.x + math.cos(engine_angle + 0.3) * flame_length, 
-                 self.y + math.sin(engine_angle + 0.3) * flame_length),
-                
-                # Tip of flame
-                (self.x + math.cos(engine_angle) * (flame_length + 5), 
-                 self.y + math.sin(engine_angle) * (flame_length + 5)),
-                
-                # Left edge of flame
-                (self.x + math.cos(engine_angle - 0.3) * flame_length, 
-                 self.y + math.sin(engine_angle - 0.3) * flame_length),
-            ]
-            
-            # Draw the flame with a yellow-orange color
-            flame_color = (255, 150, 50)
-            pygame.draw.polygon(surface, flame_color, flame_points) 
+        # Draw a hull glow effect for the ship
+        if random.random() < 0.2:  # Occasional subtle glow
+            glow_points = []
+            for point in points:
+                # Add slight randomization to glow points
+                glow_points.append((
+                    point[0] + random.uniform(-1, 1),
+                    point[1] + random.uniform(-1, 1)
+                ))
+            pygame.draw.polygon(surface, (100, 180, 255, 50), glow_points, 2) 

@@ -503,30 +503,116 @@ class GameplayState(BaseState):
         elif asteroid.type == "unstable":
             self.score += 75
         
-        # Create particles for explosion effect
-        num_particles = 15 if asteroid.size == "large" else 10
+        # Create particles for explosion effect with enhanced visuals
+        # More particles for larger asteroids
+        if asteroid.size == "large":
+            num_particles = 40  # Increased from 15
+        elif asteroid.size == "medium":
+            num_particles = 30  # Increased from 10
+        else:  # small
+            num_particles = 20
+            
+        # Create primary explosion particles
         for _ in range(num_particles):
-            vel_x = random.uniform(-100, 100)
-            vel_y = random.uniform(-100, 100)
+            # Create more dynamic velocities for particles
+            speed = random.uniform(50, 200)  # Higher speed range
+            angle = random.uniform(0, 2 * math.pi)
+            vel_x = math.cos(angle) * speed
+            vel_y = math.sin(angle) * speed
             
-            # Different colors based on asteroid type
+            # Different colors based on asteroid type with more variation
             if asteroid.type == "normal":
-                color = (150, 150, 150)
+                base_color = (150, 150, 150)
+                # Add some variation to the colors
+                color_variation = random.randint(-30, 30)
+                color = (
+                    max(0, min(255, base_color[0] + color_variation)),
+                    max(0, min(255, base_color[1] + color_variation)),
+                    max(0, min(255, base_color[2] + color_variation))
+                )
             elif asteroid.type == "ice":
-                color = (200, 200, 255)
+                # More vibrant ice colors
+                blue = random.randint(200, 255)
+                color = (random.randint(200, 240), random.randint(200, 240), blue)
             elif asteroid.type == "mineral":
-                color = (200, 150, 100)
+                # More vibrant mineral colors
+                red = random.randint(180, 255)
+                green = random.randint(120, 180)
+                blue = random.randint(50, 100)
+                color = (red, green, blue)
             else:  # unstable
-                color = (255, 100, 100)
+                # More vibrant unstable colors with reds and oranges
+                red = random.randint(220, 255)
+                green = random.randint(50, 150)
+                blue = random.randint(20, 50)
+                color = (red, green, blue)
             
+            # Create the particle with varied parameters
+            # Determine if this particle has special effects
+            has_glow = random.random() < 0.3  # 30% chance for glow
+            has_trail = random.random() < 0.2  # 20% chance for trail
+            
+            # Pick a random shape with weights (circle most common)
+            shapes = ["circle", "square", "triangle", "star"]
+            shape_weights = [0.7, 0.1, 0.1, 0.1]
+            shape = random.choices(shapes, weights=shape_weights)[0]
+            
+            # Pick a random fade mode
+            fade_modes = ["normal", "pulse", "flicker"]
+            fade_weights = [0.6, 0.2, 0.2]
+            fade_mode = random.choices(fade_modes, weights=fade_weights)[0]
+            
+            # Determine if particle spins
+            spins = random.random() < 0.4  # 40% chance to spin
+            
+            # Create particle with various visual effects
             self.particles.append(
                 Particle(
                     asteroid.x, asteroid.y,
                     vel_x, vel_y,
-                    random.uniform(0.5, 1.5),  # Life
-                    color
+                    random.uniform(0.7, 2.0),  # Longer lifetime
+                    color,
+                    size=random.uniform(2.0, 5.0),  # Larger particles
+                    shape=shape,
+                    trail=has_trail,
+                    glow=has_glow,
+                    fade_mode=fade_mode,
+                    spin=spins
                 )
             )
+            
+        # Add central explosion flash for larger asteroids
+        if asteroid.size in ["large", "medium"]:
+            # Central bright flash
+            flash_color = (255, 255, 200) if asteroid.type != "unstable" else (255, 200, 100)
+            self.particles.append(
+                Particle(
+                    asteroid.x, asteroid.y,
+                    0, 0,  # No velocity
+                    0.3,  # Short life
+                    flash_color,
+                    size=12.0 if asteroid.size == "large" else 8.0,
+                    glow=True,
+                    fade_mode="normal"
+                )
+            )
+            
+            # Shock wave particle (expanding ring)
+            shock_size = 6.0 if asteroid.size == "large" else 4.0
+            for _ in range(3):  # Create multiple rings with offsets
+                self.particles.append(
+                    Particle(
+                        asteroid.x + random.uniform(-3, 3), 
+                        asteroid.y + random.uniform(-3, 3),
+                        0, 0,  # No velocity
+                        0.6,   # Medium life
+                        flash_color,
+                        size=shock_size + random.uniform(-1, 1),
+                        shape="circle",
+                        glow=True,
+                        fade_mode="pulse"
+                    )
+                )
         
         # Break larger asteroids into smaller ones
         if asteroid.size == "large":
@@ -560,18 +646,61 @@ class GameplayState(BaseState):
                 if distance < 100:  # Explosion radius
                     # Damage or destroy the nearby asteroid
                     self.asteroids.remove(nearby_asteroid)
-                    # Add more particles for chain reaction
-                    for _ in range(5):
-                        vel_x = random.uniform(-100, 100)
-                        vel_y = random.uniform(-100, 100)
+                    
+                    # Add more particles for chain reaction with intense effects
+                    for _ in range(15):  # Increased from 5
+                        speed = random.uniform(50, 200)
+                        angle = random.uniform(0, 2 * math.pi)
+                        vel_x = math.cos(angle) * speed
+                        vel_y = math.sin(angle) * speed
+                        
+                        # Create spectacular chain reaction particles
                         self.particles.append(
                             Particle(
                                 nearby_asteroid.x, nearby_asteroid.y,
                                 vel_x, vel_y,
-                                random.uniform(0.5, 1.0),
-                                (255, 150, 50)
+                                random.uniform(0.7, 1.5),
+                                (255, random.randint(100, 200), random.randint(20, 80)),
+                                size=random.uniform(2.0, 5.0),
+                                shape=random.choice(["circle", "star"]),
+                                trail=True,
+                                glow=random.random() < 0.6,
+                                fade_mode=random.choice(["normal", "flicker"]),
+                                spin=random.random() < 0.5
                             )
                         )
+                    
+                    # Add a shockwave effect at each chain explosion
+                    shock_color = (255, 180, 50)
+                    self.particles.append(
+                        Particle(
+                            nearby_asteroid.x, nearby_asteroid.y,
+                            0, 0,
+                            0.5,
+                            shock_color,
+                            size=8.0,
+                            shape="circle",
+                            glow=True,
+                            fade_mode="pulse"
+                        )
+                    )
+            
+            # Add an extra central explosion for unstable asteroids
+            # This creates a more dramatic effect for the chain reaction
+            for _ in range(5):
+                pulse_size = random.uniform(8.0, 15.0)
+                self.particles.append(
+                    Particle(
+                        asteroid.x, asteroid.y,
+                        0, 0,
+                        random.uniform(0.4, 0.8),
+                        (255, random.randint(100, 200), random.randint(20, 80)),
+                        size=pulse_size,
+                        shape="circle",
+                        glow=True,
+                        fade_mode="pulse"
+                    )
+                )
         
         # Chance to spawn a powerup
         if random.random() < 0.2:  # 20% chance (increased from 10%)
@@ -598,12 +727,97 @@ class GameplayState(BaseState):
                     powerup_type
                 )
             )
+            
+            # Add a special effect for powerup spawning
+            powerup_colors = {
+                "shield": (100, 200, 255),
+                "rapidfire": (255, 200, 100),
+                "extralife": (100, 255, 100),
+                "timeslow": (200, 100, 255),
+                "tripleshot": (255, 100, 100),
+                "magnet": (255, 255, 100)
+            }
+            
+            color = powerup_colors.get(powerup_type, (255, 255, 255))
+            
+            # Create a burst of particles around the powerup
+            for _ in range(15):
+                angle = random.uniform(0, 2 * math.pi)
+                speed = random.uniform(20, 80)
+                self.particles.append(
+                    Particle(
+                        asteroid.x, asteroid.y,
+                        math.cos(angle) * speed,
+                        math.sin(angle) * speed,
+                        random.uniform(0.5, 1.2),
+                        color,
+                        size=random.uniform(1.5, 3.0),
+                        shape="star" if random.random() < 0.3 else "circle",
+                        glow=True,
+                        fade_mode="pulse"
+                    )
+                )
     
     def handle_powerup_collected(self, powerup):
         """Handle player collecting a powerup"""
         # Play powerup sound
         self.game_state.sound_manager.play("powerup")
         
+        # Create special particle effects when collecting a powerup
+        powerup_colors = {
+            "shield": (100, 200, 255),
+            "rapidfire": (255, 200, 100),
+            "extralife": (100, 255, 100),
+            "timeslow": (200, 100, 255),
+            "tripleshot": (255, 100, 100),
+            "magnet": (255, 255, 100)
+        }
+        
+        color = powerup_colors.get(powerup.powerup_type, (255, 255, 255))
+        
+        # Create particles spiraling outward from the player
+        for i in range(40):  # Create 40 particles in a spiral pattern
+            angle = i * (2 * math.pi / 20)  # Distribute around a circle
+            distance = 5 + i * 0.5  # Increasing distance creates spiral
+            
+            start_x = self.player.x + math.cos(angle) * distance
+            start_y = self.player.y + math.sin(angle) * distance
+            
+            speed = random.uniform(30, 100)
+            
+            self.particles.append(
+                Particle(
+                    start_x, start_y,
+                    math.cos(angle) * speed,
+                    math.sin(angle) * speed,
+                    random.uniform(0.5, 1.5),
+                    color,
+                    size=random.uniform(2.0, 4.0),
+                    shape=random.choice(["circle", "star"]) if random.random() < 0.7 else random.choice(["triangle", "square"]),
+                    trail=random.random() < 0.3,
+                    glow=True,
+                    fade_mode="pulse" if random.random() < 0.7 else "flicker",
+                    spin=random.random() < 0.5
+                )
+            )
+        
+        # Create a shockwave effect centered on the player
+        for _ in range(3):
+            ring_size = random.uniform(8, 12)
+            self.particles.append(
+                Particle(
+                    self.player.x, self.player.y,
+                    0, 0,
+                    random.uniform(0.4, 0.8),
+                    color,
+                    size=ring_size,
+                    shape="circle",
+                    glow=True,
+                    fade_mode="pulse"
+                )
+            )
+        
+        # Apply the powerup effect
         if powerup.powerup_type == "shield":
             self.player.invulnerable = True
             self.player.invulnerable_timer = 15.0  # 15 seconds of shield
@@ -627,16 +841,85 @@ class GameplayState(BaseState):
         # Play explosion sound
         self.game_state.sound_manager.play("explosion")
         
-        # Create explosion effect
-        for _ in range(20):
-            vel_x = random.uniform(-100, 100)
-            vel_y = random.uniform(-100, 100)
+        # Create enhanced explosion effect for player destruction
+        # Main explosion flash
+        self.particles.append(
+            Particle(
+                self.player.x, self.player.y,
+                0, 0,
+                0.5,
+                (255, 255, 200),
+                size=15.0,
+                shape="circle",
+                glow=True,
+                fade_mode="normal"
+            )
+        )
+        
+        # Multiple shockwave rings
+        for i in range(3):
+            delay = i * 0.1  # Stagger the rings
+            size = 10.0 + i * 4.0  # Increasing sizes
+            self.particles.append(
+                Particle(
+                    self.player.x, self.player.y,
+                    0, 0,
+                    0.6 + delay,
+                    (255, 200 - i * 30, 50),
+                    size=size,
+                    shape="circle",
+                    glow=True,
+                    fade_mode="pulse"
+                )
+            )
+        
+        # Main debris particles
+        for _ in range(60):  # Increased from 20
+            angle = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(50, 250)
+            vel_x = math.cos(angle) * speed
+            vel_y = math.sin(angle) * speed
+            
+            # Random colors for explosion - yellows, oranges, and reds
+            r = random.randint(200, 255)
+            g = random.randint(50, 200)
+            b = random.randint(0, 50)
+            
+            # Create particle with varied parameters
             self.particles.append(
                 Particle(
                     self.player.x, self.player.y,
                     vel_x, vel_y,
-                    random.uniform(0.5, 1.5),
-                    (255, 200, 50)
+                    random.uniform(0.8, 2.0),
+                    (r, g, b),
+                    size=random.uniform(2.0, 5.0),
+                    shape=random.choice(["circle", "triangle", "square", "star"]),
+                    trail=random.random() < 0.4,
+                    glow=random.random() < 0.6,
+                    fade_mode=random.choice(["normal", "pulse", "flicker"]),
+                    spin=random.random() < 0.7
+                )
+            )
+        
+        # Additional sparks that live longer
+        for _ in range(30):
+            angle = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(20, 100)
+            vel_x = math.cos(angle) * speed
+            vel_y = math.sin(angle) * speed
+            
+            self.particles.append(
+                Particle(
+                    self.player.x, self.player.y,
+                    vel_x, vel_y,
+                    random.uniform(1.5, 3.0),
+                    (255, 255, random.randint(100, 200)),
+                    size=random.uniform(1.0, 2.5),
+                    shape="circle",
+                    trail=True,
+                    glow=True,
+                    fade_mode="flicker",
+                    spin=False
                 )
             )
         
@@ -649,6 +932,44 @@ class GameplayState(BaseState):
             self.game_state.sound_manager.stop_music()
             # Play game over sound
             self.game_state.sound_manager.play("game_over")
+            
+            # Add extra "game over" particle effects
+            for _ in range(100):
+                # Particles spread across the screen
+                x = random.randint(0, self.screen_width)
+                y = random.randint(0, self.screen_height)
+                
+                # Particles move toward center
+                dx = self.screen_width // 2 - x
+                dy = self.screen_height // 2 - y
+                dist = math.sqrt(dx * dx + dy * dy)
+                
+                if dist > 0:
+                    vel_x = dx / dist * random.uniform(20, 50)
+                    vel_y = dy / dist * random.uniform(20, 50)
+                else:
+                    vel_x = random.uniform(-20, 20)
+                    vel_y = random.uniform(-20, 20)
+                
+                # Red colors for game over
+                r = random.randint(200, 255)
+                g = random.randint(0, 100)
+                b = random.randint(0, 50)
+                
+                self.particles.append(
+                    Particle(
+                        x, y,
+                        vel_x, vel_y,
+                        random.uniform(1.0, 5.0),
+                        (r, g, b),
+                        size=random.uniform(1.5, 4.0),
+                        shape=random.choice(["circle", "square", "triangle", "star"]),
+                        trail=random.random() < 0.3,
+                        glow=random.random() < 0.5,
+                        fade_mode=random.choice(["normal", "flicker"]),
+                        spin=random.random() < 0.5
+                    )
+                )
         else:
             # Reset player position
             self.player.x = self.screen_width // 2
@@ -660,6 +981,27 @@ class GameplayState(BaseState):
             # Make player temporarily invulnerable
             self.player.invulnerable = True
             self.player.invulnerable_timer = 3.0
+            
+            # Add respawn effect
+            for i in range(30):
+                angle = i * (2 * math.pi / 30)  # Distribute in a circle
+                speed = random.uniform(30, 80)
+                
+                self.particles.append(
+                    Particle(
+                        self.player.x, self.player.y,
+                        math.cos(angle) * speed,
+                        math.sin(angle) * speed,
+                        random.uniform(0.5, 1.5),
+                        (100, 200, 255),  # Blue for respawn
+                        size=random.uniform(1.5, 3.5),
+                        shape="circle",
+                        trail=random.random() < 0.3,
+                        glow=True,
+                        fade_mode="pulse",
+                        spin=False
+                    )
+                )
     
     def render(self, surface):
         """Render the game state"""
