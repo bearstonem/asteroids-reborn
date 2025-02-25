@@ -1,0 +1,9 @@
+# Ignore the build directory when developing locally
+# But don't ignore it in the main .gitignore so it can be committed for deployment
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+!build/web/  # We want to commit the web build 

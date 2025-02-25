@@ -64,11 +64,53 @@ python main.py
   - Faster asteroid movement
   - More challenging asteroid types
 
+## Web Version
+
+Asteroids Reborn can also be played directly in a web browser, and can be deployed to GitHub Pages.
+
+### Building for Web
+
+1. Install the required dependencies:
+```
+pip install -r requirements.txt
+```
+
+2. Run the build script:
+```
+python build_web.py
+```
+
+3. The built web files will be in the `web/build` directory.
+
+### Deploying to GitHub Pages
+
+1. Push the built web files to your GitHub repository:
+```
+git add web
+git commit -m "Add web build"
+git push
+```
+
+2. In your GitHub repository, go to Settings > Pages.
+
+3. Set the source to either:
+   - The `/docs` folder on your main branch (rename `web` folder to `docs` first)
+   - OR configure GitHub Actions to deploy from your `web` folder
+
+4. Your game will be available at `https://[yourusername].github.io/[repositoryname]/`
+
+### Troubleshooting Web Build
+
+- Some browsers may have issues with WebAssembly. Chrome and Firefox are recommended.
+- Audio may not work on some mobile browsers due to autoplay restrictions.
+- If you see any CORS errors, make sure your server is configured correctly.
+
 ## Development Roadmap
 
 - [x] Core gameplay mechanics
 - [x] Basic asteroid types
 - [x] Power-up system
+- [x] Web browser support
 - [ ] Advanced enemy types (alien ships)
 - [ ] Weapon upgrades
 - [ ] Campaign mode with missions
