@@ -46,6 +46,9 @@ class GameplayState(BaseState):
         self.level_cleared = False
         self.level_start_timer = 2.0  # Give player some time before asteroids appear
         
+        # Reinitialize star field with new random stars
+        self.initialize_stars(300)
+        
         # Powerup spawn timer
         self.powerup_spawn_timer = random.uniform(5.0, 10.0)  # First random powerup in 5-10 seconds
         
@@ -78,6 +81,9 @@ class GameplayState(BaseState):
         """Set up the next level"""
         self.level_cleared = False
         self.level_start_timer = 2.0
+        
+        # Reinitialize star field with new random stars
+        self.initialize_stars(300)
         
         # Play random background music for this level
         self.game_state.sound_manager.play_random_music()
