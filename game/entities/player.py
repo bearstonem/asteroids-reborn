@@ -206,14 +206,31 @@ class Player:
             velocity = math.sqrt(self.vel_x * self.vel_x + self.vel_y * self.vel_y)
             intensity = min(1.0, velocity / self.max_velocity)
             
-            # Color ranges from yellow (slow) to blue/white (fast)
-            if random.random() < 0.7:  # 70% are main flame color
-                r = int(255 * (1.0 - intensity * 0.5))
-                g = int(200 * (1.0 - intensity * 0.2))
-                b = int(100 + 155 * intensity)
-                color = (r, g, b)
-            else:  # 30% are brighter core
-                color = (255, 255, random.randint(180, 255))
+            # Color ranges based on ship's health and velocity
+            if self.health == 3:  # Blue theme
+                if random.random() < 0.7:  # 70% are main flame color
+                    r = int(100 + 50 * intensity)
+                    g = int(150 + 50 * intensity)
+                    b = int(200 + 55 * intensity)
+                    color = (r, g, b)
+                else:  # 30% are brighter core
+                    color = (180, 220, random.randint(230, 255))
+            elif self.health == 2:  # Purple theme
+                if random.random() < 0.7:  # 70% are main flame color
+                    r = int(120 + 60 * intensity)
+                    g = int(60 + 40 * intensity)
+                    b = int(180 + 75 * intensity)
+                    color = (r, g, b)
+                else:  # 30% are brighter core
+                    color = (180, 140, random.randint(230, 255))
+            else:  # Teal theme
+                if random.random() < 0.7:  # 70% are main flame color
+                    r = int(20 + 30 * intensity)
+                    g = int(150 + 80 * intensity)
+                    b = int(100 + 50 * intensity)
+                    color = (r, g, b)
+                else:  # 30% are brighter core
+                    color = (100, random.randint(220, 255), 200)
             
             # Add slight randomization to particle position
             offset_x = random.uniform(-3, 3)
@@ -343,20 +360,20 @@ class Player:
         
         # Player ship colors based on health
         if self.health == 3:
-            # Full health - electric blue/cyan with bright highlights
-            base_color = (20, 100, 255)  # Electric blue
-            highlight_color = (60, 180, 255)  # Brighter blue highlight
-            glow_color = (100, 200, 255, 100)  # Blue glow
+            # Full health - vibrant blue/teal with bright highlights
+            base_color = (30, 150, 255)  # Bright blue
+            highlight_color = (100, 220, 255)  # Cyan highlight
+            glow_color = (50, 200, 255, 100)  # Blue-cyan glow
         elif self.health == 2:
-            # Medium health - gold/amber
-            base_color = (255, 180, 30)  # Golden amber
-            highlight_color = (255, 220, 80)  # Bright gold highlight
-            glow_color = (255, 200, 50, 100)  # Gold glow
+            # Medium health - purple/violet
+            base_color = (120, 60, 220)  # Purple
+            highlight_color = (180, 100, 255)  # Bright violet highlight
+            glow_color = (160, 80, 255, 100)  # Purple glow
         else:
-            # Low health - deep crimson
-            base_color = (200, 30, 30)  # Deep crimson
-            highlight_color = (255, 80, 50)  # Fiery highlight
-            glow_color = (255, 100, 50, 100)  # Red glow
+            # Low health - teal/green
+            base_color = (20, 180, 130)  # Teal green
+            highlight_color = (40, 255, 170)  # Bright teal highlight
+            glow_color = (30, 220, 150, 100)  # Teal glow
             
         # Add engine glow - identical to enemy but with player colors
         engine_glow_radius = 8 + (pygame.time.get_ticks() % 6) / 3.0  # Pulsating effect
@@ -418,17 +435,17 @@ class Player:
             
             # Flame colors based on player health
             if self.health == 3:
-                outer_flame = (80, 120, 255)  # Blue flame
-                mid_flame = (120, 180, 255)   # Brighter blue
-                inner_flame = (200, 230, 255) # White-blue core
+                outer_flame = (40, 100, 255)  # Deep blue flame
+                mid_flame = (80, 160, 255)    # Medium blue
+                inner_flame = (160, 230, 255) # White-blue core
             elif self.health == 2:
-                outer_flame = (255, 120, 40)  # Orange flame
-                mid_flame = (255, 180, 60)    # Yellow-orange
-                inner_flame = (255, 230, 150) # White-yellow core 
+                outer_flame = (100, 50, 200)  # Purple flame
+                mid_flame = (150, 100, 220)   # Lighter purple
+                inner_flame = (200, 180, 255) # White-purple core 
             else:
-                outer_flame = (255, 60, 60)   # Red flame
-                mid_flame = (255, 120, 80)    # Bright red
-                inner_flame = (255, 220, 180) # White-red core
+                outer_flame = (30, 150, 100)  # Teal flame
+                mid_flame = (50, 200, 150)    # Brighter teal
+                inner_flame = (180, 255, 220) # White-teal core
             
             # Outer flame layer
             flame_points = [
@@ -532,19 +549,21 @@ class Player:
             if self.health == 3:
                 line_base_color = (0, 100, 255)  # Blue energy
             elif self.health == 2:
-                line_base_color = (255, 180, 30)  # Gold energy
+                line_base_color = (120, 60, 220)  # Purple energy
             else:
-                line_base_color = (255, 60, 60)  # Red energy
+                line_base_color = (20, 180, 130)  # Teal energy
             
             # Draw energy lines along hull based on health
             for i in range(self.health):
                 line_intensity = int(100 + 155 * pulse_phase)
+                
+                # Pulse effect based on health
                 if self.health == 3:
                     line_color = (line_intensity, line_intensity, 255)  # Blue pulsing
                 elif self.health == 2:
-                    line_color = (255, line_intensity, line_intensity//2)  # Gold pulsing
+                    line_color = (line_intensity, line_intensity//2, 255)  # Purple pulsing
                 else:
-                    line_color = (255, line_intensity, line_intensity)  # Red pulsing
+                    line_color = (line_intensity//2, 255, line_intensity)  # Teal pulsing
                 
                 # Position based on health index
                 line_angle = angle_rad + 0.5 + (i * 0.4)
@@ -581,11 +600,11 @@ class Player:
                 shield_color_outer = (100, 200, 255, 100)  # Blue shield
                 shield_color_inner = (150, 220, 255, 60)   # Inner blue
             elif self.health == 2:
-                shield_color_outer = (255, 200, 50, 100)   # Gold shield
-                shield_color_inner = (255, 220, 100, 60)   # Inner gold
+                shield_color_outer = (140, 100, 255, 100)  # Purple shield
+                shield_color_inner = (180, 150, 255, 60)   # Inner purple
             else:
-                shield_color_outer = (255, 80, 50, 100)    # Red shield
-                shield_color_inner = (255, 120, 80, 60)    # Inner red
+                shield_color_outer = (50, 220, 150, 100)   # Teal shield
+                shield_color_inner = (100, 255, 180, 60)   # Inner teal
             
             # Create surface for shield with alpha
             shield_surface = pygame.Surface((int(shield_radius*2 + 4), int(shield_radius*2 + 4)), pygame.SRCALPHA)
@@ -630,11 +649,11 @@ class Player:
                 magnet_color = (100, 150, 255, 20)  # Blue magnet field
                 pulse_color = (150, 200, 255, 30)   # Blue pulse
             elif self.health == 2:
-                magnet_color = (255, 200, 50, 20)   # Gold magnet field
-                pulse_color = (255, 220, 100, 30)   # Gold pulse
+                magnet_color = (120, 80, 220, 20)   # Purple magnet field
+                pulse_color = (160, 120, 255, 30)   # Purple pulse
             else:
-                magnet_color = (255, 80, 50, 20)    # Red magnet field
-                pulse_color = (255, 120, 80, 30)    # Red pulse
+                magnet_color = (40, 180, 130, 20)   # Teal magnet field
+                pulse_color = (80, 220, 150, 30)    # Teal pulse
             
             magnet_surface = pygame.Surface((self.magnet_radius * 2, self.magnet_radius * 2), pygame.SRCALPHA)
             pygame.draw.circle(
@@ -666,9 +685,9 @@ class Player:
             if self.health == 3:
                 time_color = (120, 180, 255, 120)  # Blue time effect
             elif self.health == 2:
-                time_color = (255, 220, 100, 120)  # Gold time effect
+                time_color = (140, 100, 220, 120)  # Purple time effect
             else:
-                time_color = (255, 120, 80, 120)   # Red time effect
+                time_color = (60, 200, 150, 120)   # Teal time effect
             
             # Create time distortion waves
             time_surface = pygame.Surface((100, 100), pygame.SRCALPHA)

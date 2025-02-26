@@ -364,6 +364,49 @@ class GameplayState(BaseState):
                 # Play hit sound
                 self.game_state.sound_manager.play("hit")
                 
+                # Add physics-based collision response
+                # Calculate collision vector (from enemy to player)
+                dx = self.player.x - self.enemy.x
+                dy = self.player.y - self.enemy.y
+                
+                # Normalize the collision vector
+                distance = math.sqrt(dx * dx + dy * dy)
+                if distance > 0:
+                    dx /= distance
+                    dy /= distance
+                
+                # Calculate relative velocity between enemy and player
+                rel_vel_x = self.enemy.vel_x - self.player.vel_x
+                rel_vel_y = self.enemy.vel_y - self.player.vel_y
+                
+                # Calculate impact velocity (dot product of relative velocity and collision normal)
+                impact_velocity = rel_vel_x * dx + rel_vel_y * dy
+                
+                # Apply impulse if the objects are moving toward each other
+                if impact_velocity < 0:
+                    # Enemy ships have a fixed mass factor
+                    mass_factor = 1.5
+                    
+                    # Calculate impulse strength based on enemy speed
+                    impulse_strength = -impact_velocity * mass_factor * 1.5
+                    
+                    # Apply impulse to player velocity
+                    self.player.vel_x += dx * impulse_strength
+                    self.player.vel_y += dy * impulse_strength
+                    
+                    # Apply a little bounce effect to the enemy to make it more realistic
+                    self.enemy.vel_x -= dx * 0.3 * impulse_strength / mass_factor
+                    self.enemy.vel_y -= dy * 0.3 * impulse_strength / mass_factor
+                else:
+                    # If they're not moving toward each other, still apply a minimum push
+                    min_impulse = 100.0  # Minimum impulse to ensure player gets pushed
+                    self.player.vel_x += dx * min_impulse
+                    self.player.vel_y += dy * min_impulse
+                    
+                    # Apply a little bounce effect to the enemy for the minimum case
+                    self.enemy.vel_x -= dx * 30.0
+                    self.enemy.vel_y -= dy * 30.0
+                
                 # If player lost a life, handle destruction
                 if player_destroyed:
                     self.player_destroyed()
@@ -395,6 +438,53 @@ class GameplayState(BaseState):
                 
                 # Play hit sound
                 self.game_state.sound_manager.play("hit")
+                
+                # Add physics-based collision response
+                # Calculate collision vector (from asteroid to player)
+                dx = self.player.x - asteroid.x
+                dy = self.player.y - asteroid.y
+                
+                # Normalize the collision vector
+                distance = math.sqrt(dx * dx + dy * dy)
+                if distance > 0:
+                    dx /= distance
+                    dy /= distance
+                
+                # Calculate relative velocity between asteroid and player
+                rel_vel_x = asteroid.vel_x - self.player.vel_x
+                rel_vel_y = asteroid.vel_y - self.player.vel_y
+                
+                # Calculate impact velocity (dot product of relative velocity and collision normal)
+                impact_velocity = rel_vel_x * dx + rel_vel_y * dy
+                
+                # Apply impulse if the objects are moving toward each other
+                if impact_velocity < 0:
+                    # Adjust impulse strength based on asteroid size
+                    mass_factor = 1.0
+                    if asteroid.size == "large":
+                        mass_factor = 2.0
+                    elif asteroid.size == "medium":
+                        mass_factor = 1.5
+                    
+                    # Calculate impulse strength based on asteroid speed and mass
+                    impulse_strength = -impact_velocity * mass_factor * 1.5
+                    
+                    # Apply impulse to player velocity
+                    self.player.vel_x += dx * impulse_strength
+                    self.player.vel_y += dy * impulse_strength
+                    
+                    # Apply a little bounce effect to the asteroid to make it more realistic
+                    asteroid.vel_x -= dx * 0.3 * impulse_strength / mass_factor
+                    asteroid.vel_y -= dy * 0.3 * impulse_strength / mass_factor
+                else:
+                    # If they're not moving toward each other, still apply a minimum push
+                    min_impulse = 100.0  # Minimum impulse to ensure player gets pushed
+                    self.player.vel_x += dx * min_impulse
+                    self.player.vel_y += dy * min_impulse
+                    
+                    # Apply a little bounce effect to the asteroid for the minimum case
+                    asteroid.vel_x -= dx * 30.0
+                    asteroid.vel_y -= dy * 30.0
                 
                 # If player lost a life, handle destruction
                 if player_destroyed:
