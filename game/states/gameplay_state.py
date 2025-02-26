@@ -356,7 +356,17 @@ class GameplayState(BaseState):
             
             # Check collision between player and enemy
             if not self.player.invulnerable and check_collision(self.player, self.enemy):
-                self.player_destroyed()
+                player_destroyed = self.player.take_damage()
+                
+                # Create hit particles
+                self.create_hit_particles(self.player.x, self.player.y, 15)
+                
+                # Play hit sound
+                self.game_state.sound_manager.play("hit")
+                
+                # If player lost a life, handle destruction
+                if player_destroyed:
+                    self.player_destroyed()
         else:
             # Update respawn timer when inactive
             self.enemy.update(effective_dt, self.player.x, self.player.y, 
@@ -378,7 +388,17 @@ class GameplayState(BaseState):
             
             # Check collision with player
             if not self.player.invulnerable and check_collision(self.player, asteroid):
-                self.player_destroyed()
+                player_destroyed = self.player.take_damage()
+                
+                # Create hit particles
+                self.create_hit_particles(self.player.x, self.player.y, 15)
+                
+                # Play hit sound
+                self.game_state.sound_manager.play("hit")
+                
+                # If player lost a life, handle destruction
+                if player_destroyed:
+                    self.player_destroyed()
                 break
             
             # Check collision with enemy ship
@@ -446,7 +466,17 @@ class GameplayState(BaseState):
             
             # Check collision with player (so player can take damage from projectiles)
             if not self.player.invulnerable and check_collision(projectile, self.player):
-                self.player_destroyed()
+                player_destroyed = self.player.take_damage()
+                
+                # Create hit particles
+                self.create_hit_particles(self.player.x, self.player.y, 10)
+                
+                # Play hit sound
+                self.game_state.sound_manager.play("hit")
+                
+                # If player lost a life, handle destruction
+                if player_destroyed:
+                    self.player_destroyed()
                 if projectile in self.projectiles:
                     self.projectiles.remove(projectile)
                 break
@@ -1156,6 +1186,12 @@ class GameplayState(BaseState):
         lives_rect.topright = (surface.get_width() - 20, 20)
         surface.blit(lives_text, lives_rect)
         
+        # Display health
+        health_text = self.ui_font.render(f"Health: {self.player.health}", True, (255, 255, 255))
+        health_rect = health_text.get_rect()
+        health_rect.topright = (surface.get_width() - 20, 55)
+        surface.blit(health_text, health_rect)
+        
         # Display active power-ups
         y_offset = 60
         if self.player.invulnerable and self.player.invulnerable_timer > 0:
@@ -1244,3 +1280,23 @@ class GameplayState(BaseState):
         # Optional: Play a subtle sound to indicate a powerup has spawned
         if hasattr(self.game_state, 'sound_manager'):
             self.game_state.sound_manager.play("powerup_spawn") 
+
+    def create_hit_particles(self, x, y, num_particles):
+        """Create hit particles at a given position"""
+        for _ in range(num_particles):
+            vel_x = random.uniform(-50, 50)
+            vel_y = random.uniform(-50, 50)
+            self.particles.append(
+                Particle(
+                    x, y,
+                    vel_x, vel_y,
+                    random.uniform(0.3, 0.8),
+                    (255, 100, 50),
+                    size=random.uniform(2.0, 5.0),
+                    shape=random.choice(["circle", "triangle", "square", "star"]),
+                    trail=random.random() < 0.4,
+                    glow=random.random() < 0.6,
+                    fade_mode=random.choice(["normal", "pulse", "flicker"]),
+                    spin=random.random() < 0.7
+                )
+            ) 
