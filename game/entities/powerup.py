@@ -31,6 +31,8 @@ class Powerup:
             self.color = (255, 100, 100)  # Red
         elif powerup_type == "magnet":
             self.color = (255, 255, 100)  # Yellow
+        elif powerup_type == "health":
+            self.color = (255, 80, 80)  # Bright red for health
         else:
             self.color = (200, 200, 200)  # Gray (default)
     
@@ -334,6 +336,69 @@ class Powerup:
                 (int(s_pole_x - pole_size * sin_rot), int(s_pole_y + pole_size * cos_rot)),
                 3
             )
+        
+        elif self.powerup_type == "health":
+            # Health powerup (red orb with medical cross)
+            # Draw outer orb
+            pygame.draw.circle(
+                surface,
+                self.color,
+                (int(self.x), int(self.y)),
+                int(self.radius)
+            )
+            
+            # Draw medical cross symbol with rotation and pulsing effect
+            cross_size = self.radius * (0.6 + 0.1 * pulse_amount)  # Pulsing size
+            rotation_rad = math.radians(self.rotation)
+            cos_rot = math.cos(rotation_rad)
+            sin_rot = math.sin(rotation_rad)
+            
+            # Cross thickness varies with pulse
+            cross_thickness = int(2 + pulse_amount * 1)
+            
+            # Vertical line of cross
+            v_start_x = self.x - sin_rot * cross_size
+            v_start_y = self.y - cos_rot * cross_size
+            v_end_x = self.x + sin_rot * cross_size
+            v_end_y = self.y + cos_rot * cross_size
+            
+            # Horizontal line of cross
+            h_start_x = self.x - cos_rot * cross_size
+            h_start_y = self.y + sin_rot * cross_size
+            h_end_x = self.x + cos_rot * cross_size
+            h_end_y = self.y - sin_rot * cross_size
+            
+            # Draw both lines of the cross
+            pygame.draw.line(
+                surface,
+                (255, 255, 255),
+                (int(v_start_x), int(v_start_y)),
+                (int(v_end_x), int(v_end_y)),
+                cross_thickness
+            )
+            
+            pygame.draw.line(
+                surface,
+                (255, 255, 255),
+                (int(h_start_x), int(h_start_y)),
+                (int(h_end_x), int(h_end_y)),
+                cross_thickness
+            )
+            
+            # Add a subtle glow effect around the cross
+            if pulse_amount > 0.7:  # Only show glow at peak of pulse
+                glow_surface = pygame.Surface((int(cross_size*3), int(cross_size*3)), pygame.SRCALPHA)
+                glow_color = (255, 150, 150, int(70 * (pulse_amount - 0.7) / 0.3))
+                pygame.draw.circle(
+                    glow_surface,
+                    glow_color,
+                    (int(cross_size*1.5), int(cross_size*1.5)),
+                    int(cross_size * 1.2)
+                )
+                surface.blit(
+                    glow_surface,
+                    (int(self.x - cross_size*1.5), int(self.y - cross_size*1.5))
+                )
         
         # Add glow effect based on pulse
         glow_radius = self.radius * (1 + pulse_amount * 0.3)

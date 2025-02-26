@@ -825,11 +825,12 @@ class GameplayState(BaseState):
                 "extralife", 
                 "timeslow", 
                 "tripleshot", 
-                "magnet"
+                "magnet",
+                "health"
             ]
             
             # Different weights for different powerups (rarer ones have lower chance)
-            weights = [0.2, 0.2, 0.1, 0.2, 0.15, 0.15]
+            weights = [0.2, 0.2, 0.1, 0.2, 0.15, 0.15, 0.2]
             
             powerup_type = random.choices(powerup_types, weights=weights)[0]
             
@@ -849,7 +850,8 @@ class GameplayState(BaseState):
                 "extralife": (100, 255, 100),
                 "timeslow": (200, 100, 255),
                 "tripleshot": (255, 100, 100),
-                "magnet": (255, 255, 100)
+                "magnet": (255, 255, 100),
+                "health": (255, 80, 80)
             }
             
             color = powerup_colors.get(powerup_type, (255, 255, 255))
@@ -884,7 +886,8 @@ class GameplayState(BaseState):
             "extralife": (100, 255, 100),
             "timeslow": (200, 100, 255),
             "tripleshot": (255, 100, 100),
-            "magnet": (255, 255, 100)
+            "magnet": (255, 255, 100),
+            "health": (255, 80, 80)
         }
         
         color = powerup_colors.get(powerup.powerup_type, (255, 255, 255))
@@ -949,6 +952,66 @@ class GameplayState(BaseState):
         elif powerup.powerup_type == "magnet":
             self.player.magnet = True
             self.player.magnet_timer = 18.0  # 18 seconds of magnet effect
+        elif powerup.powerup_type == "health":
+            # Store old health value to calculate health gained
+            old_health = self.player.health
+            # Restore player's health to full (3)
+            self.player.health = 3
+            health_gained = self.player.health - old_health
+            
+            # Create healing particles effect
+            if health_gained > 0:
+                # Create healing cross particles that rise from the player
+                for i in range(health_gained * 3):  # 3 particles per health point gained
+                    # Calculate random position around player
+                    angle = random.uniform(0, 2 * math.pi)
+                    distance = random.uniform(5, 15)
+                    
+                    pos_x = self.player.x + math.cos(angle) * distance
+                    pos_y = self.player.y + math.sin(angle) * distance
+                    
+                    # Upward and slightly random velocity
+                    vel_x = random.uniform(-5, 5)
+                    vel_y = random.uniform(-30, -15)
+                    
+                    # Create the healing particle
+                    self.particles.append(
+                        Particle(
+                            pos_x, pos_y,
+                            vel_x, vel_y,
+                            random.uniform(0.8, 1.2),  # Longer lifetime
+                            (255, 80, 80),  # Red health color - using 3-tuple
+                            size=random.uniform(2.5, 4.0),
+                            shape="circle",
+                            trail=True,
+                            glow=True,
+                            fade_mode="pulse" 
+                        )
+                    )
+                
+                # Create a healing cross effect that grows and fades
+                cross_size = 10
+                self.particles.append(
+                    Particle(
+                        self.player.x, self.player.y,
+                        0, 0,
+                        0.6,  # Longer lifetime for cross
+                        (255, 80, 80),  # Red color - changed from 4-tuple to 3-tuple
+                        size=cross_size,
+                        shape="custom",  # We'll draw a custom shape in the render method
+                        glow=True,
+                        fade_mode="custom",  # Custom fade that grows then shrinks
+                        # Additional data for the cross effect
+                        custom_data={
+                            "type": "health_cross",
+                            "max_size": 25  # Maximum size the cross will grow to
+                        }
+                    )
+                )
+                
+                # Play a healing sound if available
+                if hasattr(self.game_state, 'sound_manager'):
+                    self.game_state.sound_manager.play("powerup")  # Use powerup sound for now
     
     def player_destroyed(self):
         """Handle player being destroyed"""
@@ -1257,11 +1320,12 @@ class GameplayState(BaseState):
             "extralife", 
             "timeslow", 
             "tripleshot", 
-            "magnet"
+            "magnet",
+            "health"
         ]
         
         # Different weights for different powerups (rarer ones have lower chance)
-        weights = [0.2, 0.2, 0.1, 0.2, 0.15, 0.15]
+        weights = [0.2, 0.2, 0.1, 0.2, 0.15, 0.15, 0.2]
         
         powerup_type = random.choices(powerup_types, weights=weights)[0]
         

@@ -44,7 +44,8 @@ class SoundManager:
             "game_over": "game_over.mp3",
             "level_up": "level_up.mp3",
             "hit": "hit.mp3",  # Added hit sound for enemy being hit
-            "enemy_shoot": "enemy_shoot.mp3"  # Enemy shoot sound
+            "enemy_shoot": "enemy_shoot.mp3",  # Enemy shoot sound
+            "powerup_spawn": "powerup_spawn.mp3"
         }
         
         # Load each sound
