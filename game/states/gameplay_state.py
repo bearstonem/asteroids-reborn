@@ -10,6 +10,65 @@ from game.entities.powerup import Powerup
 from game.entities.enemy import Enemy
 from game.utils.collision import check_collision
 
+class LevelMarquee:
+    """
+    A visual effect that displays the level number flying toward the screen
+    when a new level is reached.
+    """
+    def __init__(self, level, screen_width, screen_height):
+        self.level = level
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self.font_size = 48  # Starting font size
+        self.max_font_size = 180  # Maximum font size when close to screen
+        self.alpha = 255  # Full opacity
+        self.life = 2.0  # How long the marquee lives (seconds)
+        self.z_position = -500  # Starting z position (far from screen)
+        self.z_velocity = 250  # Speed at which it flies toward screen
+        
+        # Create the font
+        self.font = pygame.font.Font(None, self.font_size)
+        
+        # Render the text
+        self.text = f"LEVEL {self.level}"
+        self.update_rendered_text()
+        
+    def update_rendered_text(self):
+        """Update the rendered text surface based on current font size"""
+        self.font = pygame.font.Font(None, int(self.font_size))
+        self.text_surface = self.font.render(self.text, True, (255, 255, 255))
+        self.text_rect = self.text_surface.get_rect(center=(self.screen_width // 2, self.screen_height // 2))
+    
+    def update(self, dt):
+        """Update the marquee effect"""
+        # Move toward the screen
+        self.z_position += self.z_velocity * dt
+        
+        # Calculate how close we are to the screen (0 = far, 1 = at screen)
+        z_progress = min(1.0, (self.z_position + 500) / 500)
+        
+        # Increase font size based on z position
+        self.font_size = 48 + (self.max_font_size - 48) * z_progress
+        
+        # Decrease alpha (fade out) in the last half of life
+        self.life -= dt
+        life_progress = max(0, min(1.0, self.life / 2.0))
+        self.alpha = 255 * life_progress
+        
+        # Update the rendered text with new font size
+        self.update_rendered_text()
+        
+        return self.life > 0  # Return True if still alive
+    
+    def render(self, surface):
+        """Render the marquee to the screen"""
+        # Create a copy of the text surface with the current alpha
+        text_surface_alpha = self.text_surface.copy()
+        text_surface_alpha.set_alpha(int(self.alpha))
+        
+        # Draw the text
+        surface.blit(text_surface_alpha, self.text_rect)
+
 class GameplayState(BaseState):
     """
     Main gameplay state for Asteroids Reborn
@@ -38,6 +97,7 @@ class GameplayState(BaseState):
         self.particles = []
         self.powerups = []
         self.enemy = Enemy(100, 100)  # Initialize enemy at a different position than player
+        self.level_marquees = []  # List to hold active level marquees
         
         # Game state variables
         self.score = 0
@@ -45,6 +105,9 @@ class GameplayState(BaseState):
         self.game_over = False
         self.level_cleared = False
         self.level_start_timer = 2.0  # Give player some time before asteroids appear
+        
+        # Create initial level marquee for level 1
+        self.level_marquees.append(LevelMarquee(self.level, self.screen_width, self.screen_height))
         
         # Reinitialize star field with new random stars
         self.initialize_stars(300)
@@ -145,6 +208,11 @@ class GameplayState(BaseState):
             effective_dt = dt * 0.167  # Slowed to 1/6 speed (3x more powerful than before) when time slow is active
         else:
             effective_dt = dt
+        
+        # Update level marquees even if game is over
+        for marquee in self.level_marquees[:]:
+            if not marquee.update(dt):
+                self.level_marquees.remove(marquee)
         
         if self.game_over:
             # Only update particles when game over
@@ -477,6 +545,8 @@ class GameplayState(BaseState):
         if len(self.asteroids) == 0 and not self.level_cleared:
             self.level_cleared = True
             self.level += 1
+            # Create level marquee
+            self.level_marquees.append(LevelMarquee(self.level, self.screen_width, self.screen_height))
             self.start_new_level()
             
         # Apply magnet effect to powerups
@@ -1060,6 +1130,10 @@ class GameplayState(BaseState):
         # Draw player if still alive
         if not self.game_over:
             self.player.render(surface)
+            
+        # Draw level marquees (drawn after everything else but before UI to appear on top)
+        for marquee in self.level_marquees:
+            marquee.render(surface)
         
         # Draw UI
         self.render_ui(surface)
