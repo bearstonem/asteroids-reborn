@@ -249,58 +249,140 @@ class Player:
         # Calculate ship vertices based on current rotation
         angle_rad = math.radians(self.rotation)
         
-        # Ship design: triangle with a small tail
-        points = [
+        # Enhanced ship design: more detailed with wings and cockpit
+        main_points = [
             # Nose of the ship
-            (self.x + math.cos(angle_rad) * 20, 
-             self.y + math.sin(angle_rad) * 20),
+            (self.x + math.cos(angle_rad) * 25, 
+             self.y + math.sin(angle_rad) * 25),
             
-            # Right wing
-            (self.x + math.cos(angle_rad + 2.6) * 15, 
-             self.y + math.sin(angle_rad + 2.6) * 15),
+            # Right wing front
+            (self.x + math.cos(angle_rad + 2.0) * 18, 
+             self.y + math.sin(angle_rad + 2.0) * 18),
+            
+            # Right wing tip
+            (self.x + math.cos(angle_rad + 2.5) * 22, 
+             self.y + math.sin(angle_rad + 2.5) * 22),
+            
+            # Right wing back
+            (self.x + math.cos(angle_rad + 3.0) * 14, 
+             self.y + math.sin(angle_rad + 3.0) * 14),
             
             # Tail indent
-            (self.x + math.cos(angle_rad + math.pi) * 5, 
-             self.y + math.sin(angle_rad + math.pi) * 5),
+            (self.x + math.cos(angle_rad + math.pi) * 8, 
+             self.y + math.sin(angle_rad + math.pi) * 8),
             
-            # Left wing
-            (self.x + math.cos(angle_rad - 2.6) * 15, 
-             self.y + math.sin(angle_rad - 2.6) * 15),
+            # Left wing back
+            (self.x + math.cos(angle_rad - 3.0) * 14, 
+             self.y + math.sin(angle_rad - 3.0) * 14),
+            
+            # Left wing tip
+            (self.x + math.cos(angle_rad - 2.5) * 22, 
+             self.y + math.sin(angle_rad - 2.5) * 22),
+            
+            # Left wing front
+            (self.x + math.cos(angle_rad - 2.0) * 18, 
+             self.y + math.sin(angle_rad - 2.0) * 18),
         ]
         
-        # Draw the ship
-        ship_color = (50, 150, 255)  # Blue ship
+        # Cockpit shape
+        cockpit_points = [
+            # Front of cockpit
+            (self.x + math.cos(angle_rad) * 12, 
+             self.y + math.sin(angle_rad) * 12),
+            
+            # Right side
+            (self.x + math.cos(angle_rad + 0.8) * 8, 
+             self.y + math.sin(angle_rad + 0.8) * 8),
+            
+            # Back of cockpit
+            (self.x + math.cos(angle_rad + math.pi) * 2, 
+             self.y + math.sin(angle_rad + math.pi) * 2),
+            
+            # Left side
+            (self.x + math.cos(angle_rad - 0.8) * 8, 
+             self.y + math.sin(angle_rad - 0.8) * 8),
+        ]
+        
+        # Draw ship with a metallic blue color gradient
+        base_ship_color = (30, 130, 220)  # Metallic blue base
+        highlight_color = (80, 180, 255)  # Lighter blue highlight
+        
+        # Draw the main ship body
+        pygame.draw.polygon(surface, base_ship_color, main_points)
+        
+        # Draw subtle engine glow at the back
+        engine_glow_radius = 6 + (pygame.time.get_ticks() % 5) / 2.5  # Pulsating effect
+        engine_glow_color = (80, 150, 255, 150)  # Soft blue glow
+        
+        # Engine positions
+        back_angle = angle_rad + math.pi
+        engine_x = self.x + math.cos(back_angle) * 8
+        engine_y = self.y + math.sin(back_angle) * 8
+        
+        # Create a surface for the glow with alpha
+        glow_surface = pygame.Surface((int(engine_glow_radius*2), int(engine_glow_radius*2)), pygame.SRCALPHA)
+        pygame.draw.circle(glow_surface, engine_glow_color, 
+                          (int(engine_glow_radius), int(engine_glow_radius)), 
+                          int(engine_glow_radius))
+        
+        # Apply the glow
+        surface.blit(glow_surface, 
+                    (int(engine_x - engine_glow_radius), 
+                     int(engine_y - engine_glow_radius)))
+        
+        # Draw cockpit (with a glass-like appearance)
+        cockpit_color = (160, 220, 255)  # Light blue for cockpit glass
+        pygame.draw.polygon(surface, cockpit_color, cockpit_points)
+        
+        # Add a highlight to the ship (edge glow)
+        pygame.draw.polygon(surface, highlight_color, main_points, 1)
         
         # Draw active thruster flame if thrusting (visible from the outside)
         if self.is_thrusting:
             # Calculate thruster position
-            back_angle = angle_rad + math.pi
             thruster_x = self.x + math.cos(back_angle) * 12
             thruster_y = self.y + math.sin(back_angle) * 12
             
-            # Draw flame (triangle shape)
-            flame_length = 10 + random.uniform(-2, 2)  # Flickering effect
-            flame_width = 6 + random.uniform(-1, 1)
+            # Draw more detailed flame with multiple layers
+            flame_length = 14 + random.uniform(-3, 3)  # Enhanced flickering effect
+            flame_width = 8 + random.uniform(-1, 1)
             
+            # Outer flame
             flame_points = [
                 (thruster_x, thruster_y),
-                (thruster_x + math.cos(back_angle + 0.3) * flame_width, 
-                 thruster_y + math.sin(back_angle + 0.3) * flame_width),
+                (thruster_x + math.cos(back_angle + 0.4) * flame_width, 
+                 thruster_y + math.sin(back_angle + 0.4) * flame_width),
                 (thruster_x + math.cos(back_angle) * flame_length, 
                  thruster_y + math.sin(back_angle) * flame_length),
-                (thruster_x + math.cos(back_angle - 0.3) * flame_width, 
-                 thruster_y + math.sin(back_angle - 0.3) * flame_width),
+                (thruster_x + math.cos(back_angle - 0.4) * flame_width, 
+                 thruster_y + math.sin(back_angle - 0.4) * flame_width),
             ]
             
-            # Flame color changes over time for flickering effect
+            # Animated flame colors based on time
             flicker = (pygame.time.get_ticks() % 100) / 100.0
-            flame_color = (255, 200 + int(55 * flicker), 0)
-            
+            flame_color = (255, 180 + int(75 * flicker), 0)
             pygame.draw.polygon(surface, flame_color, flame_points)
             
-            # Inner flame (brighter)
-            inner_flame_length = flame_length * 0.7
-            inner_flame_width = flame_width * 0.5
+            # Middle flame layer
+            mid_flame_length = flame_length * 0.8
+            mid_flame_width = flame_width * 0.7
+            
+            mid_flame_points = [
+                (thruster_x, thruster_y),
+                (thruster_x + math.cos(back_angle + 0.3) * mid_flame_width, 
+                 thruster_y + math.sin(back_angle + 0.3) * mid_flame_width),
+                (thruster_x + math.cos(back_angle) * mid_flame_length, 
+                 thruster_y + math.sin(back_angle) * mid_flame_length),
+                (thruster_x + math.cos(back_angle - 0.3) * mid_flame_width, 
+                 thruster_y + math.sin(back_angle - 0.3) * mid_flame_width),
+            ]
+            
+            mid_flame_color = (255, 220, 50)
+            pygame.draw.polygon(surface, mid_flame_color, mid_flame_points)
+            
+            # Inner flame (brightest)
+            inner_flame_length = flame_length * 0.6
+            inner_flame_width = flame_width * 0.4
             
             inner_flame_points = [
                 (thruster_x, thruster_y),
@@ -314,16 +396,85 @@ class Player:
             
             inner_flame_color = (255, 255, 200)
             pygame.draw.polygon(surface, inner_flame_color, inner_flame_points)
+            
+            # Add extra small engine flames on the wings for more visual impact
+            wing_flame_size = 5 + random.uniform(-1, 1)
+            
+            # Right wing engine
+            right_engine_x = self.x + math.cos(angle_rad + 3.0) * 12
+            right_engine_y = self.y + math.sin(angle_rad + 3.0) * 12
+            
+            right_flame_points = [
+                (right_engine_x, right_engine_y),
+                (right_engine_x + math.cos(back_angle + 0.2) * wing_flame_size/2, 
+                 right_engine_y + math.sin(back_angle + 0.2) * wing_flame_size/2),
+                (right_engine_x + math.cos(back_angle) * wing_flame_size, 
+                 right_engine_y + math.sin(back_angle) * wing_flame_size),
+                (right_engine_x + math.cos(back_angle - 0.2) * wing_flame_size/2, 
+                 right_engine_y + math.sin(back_angle - 0.2) * wing_flame_size/2),
+            ]
+            
+            # Left wing engine
+            left_engine_x = self.x + math.cos(angle_rad - 3.0) * 12
+            left_engine_y = self.y + math.sin(angle_rad - 3.0) * 12
+            
+            left_flame_points = [
+                (left_engine_x, left_engine_y),
+                (left_engine_x + math.cos(back_angle + 0.2) * wing_flame_size/2, 
+                 left_engine_y + math.sin(back_angle + 0.2) * wing_flame_size/2),
+                (left_engine_x + math.cos(back_angle) * wing_flame_size, 
+                 left_engine_y + math.sin(back_angle) * wing_flame_size),
+                (left_engine_x + math.cos(back_angle - 0.2) * wing_flame_size/2, 
+                 left_engine_y + math.sin(back_angle - 0.2) * wing_flame_size/2),
+            ]
+            
+            pygame.draw.polygon(surface, (255, 200, 50), right_flame_points)
+            pygame.draw.polygon(surface, (255, 200, 50), left_flame_points)
         
-        # Draw shield if invulnerable
+        # Draw shield if invulnerable with improved appearance
         if self.invulnerable:
-            shield_color = (100, 200, 255, 100)  # Light blue, semi-transparent
+            # Pulsating shield effect
+            shield_pulse = (pygame.time.get_ticks() % 1000) / 1000.0
+            shield_radius = self.radius + 5 + 2 * shield_pulse
+            
+            # Create two layers of shield
+            shield_color_outer = (100, 200, 255, 80)  # Light blue, semi-transparent
+            shield_color_inner = (150, 220, 255, 50)  # Lighter blue, more transparent
+            
+            # Create surface for shield with alpha
+            shield_surface = pygame.Surface((int(shield_radius*2 + 4), int(shield_radius*2 + 4)), pygame.SRCALPHA)
+            
+            # Draw outer shield
             pygame.draw.circle(
-                surface, 
-                shield_color, 
-                (int(self.x), int(self.y)), 
-                int(self.radius + 5),
+                shield_surface, 
+                shield_color_outer, 
+                (int(shield_radius + 2), int(shield_radius + 2)), 
+                int(shield_radius),
                 2  # Shield thickness
+            )
+            
+            # Draw inner shield
+            pygame.draw.circle(
+                shield_surface, 
+                shield_color_inner, 
+                (int(shield_radius + 2), int(shield_radius + 2)), 
+                int(shield_radius * 0.8),
+                1  # Inner shield thickness
+            )
+            
+            # Draw shield hexagon pattern (more tech-looking)
+            for i in range(6):
+                angle = i * (math.pi/3)
+                start_x = int(shield_radius + 2 + math.cos(angle) * shield_radius * 0.9)
+                start_y = int(shield_radius + 2 + math.sin(angle) * shield_radius * 0.9)
+                end_x = int(shield_radius + 2 + math.cos(angle + math.pi) * shield_radius * 0.9)
+                end_y = int(shield_radius + 2 + math.sin(angle + math.pi) * shield_radius * 0.9)
+                pygame.draw.line(shield_surface, shield_color_outer, (start_x, start_y), (end_x, end_y), 1)
+            
+            # Apply the shield
+            surface.blit(
+                shield_surface,
+                (int(self.x - shield_radius - 2), int(self.y - shield_radius - 2))
             )
         
         # Draw magnet field if active
@@ -381,12 +532,12 @@ class Player:
             )
         
         # Draw the ship body
-        pygame.draw.polygon(surface, ship_color, points)
+        pygame.draw.polygon(surface, base_ship_color, main_points)
         
         # Draw a hull glow effect for the ship
         if random.random() < 0.2:  # Occasional subtle glow
             glow_points = []
-            for point in points:
+            for point in main_points:
                 # Add slight randomization to glow points
                 glow_points.append((
                     point[0] + random.uniform(-1, 1),
