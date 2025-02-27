@@ -13,8 +13,8 @@ class Projectile:
         self.y = y
         self.vel_x = vel_x
         self.vel_y = vel_y
-        self.radius = 3  # Small collision radius
-        self.life = 3.0  # Projectile lifetime in seconds
+        self.radius = 4  # Small collision radius
+        self.life = 1.5  # Projectile lifetime in seconds
         
         # Calculate angle for rendering
         self.angle = math.degrees(math.atan2(vel_y, vel_x))

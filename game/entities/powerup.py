@@ -12,9 +12,9 @@ class Powerup:
         self.vel_x = vel_x
         self.vel_y = vel_y
         self.powerup_type = powerup_type
-        self.radius = 15  # For collision detection
-        self.life = 10.0  # Powerup despawns after 10 seconds
-        self.pulse = 0  # For visual pulsing effect
+        self.radius = 25  # For collision detection
+        self.life = 13.0  # Powerup despawns after 13 seconds
+        self.pulse = 1  # For visual pulsing effect
         self.rotation = random.uniform(0, 360)  # Initial random rotation
         self.rotation_speed = random.uniform(-20, 20)  # Random rotation speed (degrees per second)
         

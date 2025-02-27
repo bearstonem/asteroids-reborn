@@ -556,6 +556,18 @@ class GameplayState(BaseState):
             
             # Check collision with player (so player can take damage from projectiles)
             if not self.player.invulnerable and check_collision(projectile, self.player):
+                # During time slow, projectiles fired by the player don't harm the player
+                if self.player.time_slow:
+                    # Check if projectile was fired by player
+                    player_angle_rad = math.radians(self.player.rotation)
+                    projectile_angle_rad = math.atan2(projectile.vel_y, projectile.vel_x)
+                    angle_diff = abs(player_angle_rad - projectile_angle_rad)
+                    
+                    # If angle difference is small, it's a player projectile and doesn't harm player
+                    if angle_diff < 0.5 or angle_diff > math.pi * 2 - 0.5:
+                        # Skip collision handling for player's own projectiles
+                        continue
+                
                 player_destroyed = self.player.take_damage()
                 
                 # Create hit particles
